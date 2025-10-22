@@ -73,3 +73,7 @@ npm run dev
 http://localhost:3000
 
 ```
+
+### 🚀 Deployment
+
+👉 Live Demo: [https://math-minigame-three.vercel.app/](https://math-minigame-three.vercel.app/)
