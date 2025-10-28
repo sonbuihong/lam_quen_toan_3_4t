@@ -14,6 +14,9 @@ export default class GameScene extends Phaser.Scene {
     this.load.image("board", "assets/images/board.png");
     this.load.image("btn-back", "assets/button/btn-back.png");
     this.load.image("btn-answer", "assets/button/btn-answer.png");
+    this.load.image("correct", "assets/images/correct.png");
+    this.load.image("wrong", "assets/images/wrong.png");
+    this.load.image("level-complete", "assets/images/level-complete.png");
 
     // Vật thể
     this.load.image("cat", "assets/images/cat.png");
@@ -97,15 +100,53 @@ export default class GameScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const q = this.levelData.questions[this.currentQuestionIndex];
 
-    // Xoá nội dung cũ nếu có
-    this.children.list.forEach((obj) => {
-      if (obj.type === "Image" && obj.texture.key === "btn-answer")
-        obj.destroy();
-    });
-    if (this.questionText) this.questionText.destroy();
-    if (this.objectsGroup) this.objectsGroup.destroy();
-    if (this.optionTexts) this.optionTexts.forEach((t) => t.destroy());
+    // Nếu đang có tween hoặc phần tử cũ thì xoá/fade-out trước
+    if (this.currentTweens && Array.isArray(this.currentTweens)) {
+      this.currentTweens.forEach((tw) => tw.stop && tw.stop());
+    }
+    this.currentTweens = [];
 
+    const oldElements = [];
+
+    if (this.questionText) oldElements.push(this.questionText);
+    if (
+      this.objectsGroup &&
+      this.objectsGroup.scene &&
+      this.objectsGroup.active &&
+      typeof this.objectsGroup.getChildren === "function"
+    ) {
+      oldElements.push(...this.objectsGroup.getChildren());
+    }
+    if (this.optionButtons && Array.isArray(this.optionButtons))
+      oldElements.push(...this.optionButtons);
+    if (this.optionTexts && Array.isArray(this.optionTexts))
+      oldElements.push(...this.optionTexts);
+
+    // Fade out rồi destroy — và sau đó mới tạo câu mới
+    if (oldElements.length > 0) {
+      this.tweens.add({
+        targets: oldElements,
+        alpha: 0,
+        y: "+=30",
+        duration: 300,
+        ease: "Sine.easeIn",
+        onComplete: () => {
+          oldElements.forEach((el) => el?.destroy && el.destroy());
+          this.questionText = null;
+          this.objectsGroup = null;
+          this.optionButtons = [];
+          this.optionTexts = [];
+
+          // Tạo câu hỏi mới sau khi phần cũ xoá xong
+          this._renderQuestion(q, width, height);
+        },
+      });
+    } else {
+      this._renderQuestion(q, width, height);
+    }
+  }
+
+  _renderQuestion(q, width, height) {
     // Câu hỏi
     this.questionText = this.add
       .text(width / 2, height / 4 - 20, q.question, {
@@ -126,9 +167,9 @@ export default class GameScene extends Phaser.Scene {
       ease: "Back",
     });
 
-    // Vẽ vật thể
+    // Hiển thị vật thể
     this.objectsGroup = this.add.group();
-    const spacing = 200;
+    const spacing = 150;
     const startX = width / 2 - ((q.count - 1) * spacing) / 2;
 
     for (let i = 0; i < q.count; i++) {
@@ -137,11 +178,11 @@ export default class GameScene extends Phaser.Scene {
         height / 2 - 50,
         q.object
       );
-      img.setScale(0.6);
+      img.setScale(0.3);
       this.objectsGroup.add(img);
 
-      // animation nhẹ khi scene load
-      this.tweens.add({
+      // Animation nhẹ khi load câu hỏi
+      const tw = this.tweens.add({
         targets: img,
         y: img.y - 20,
         ease: "Sine.inOut",
@@ -150,10 +191,13 @@ export default class GameScene extends Phaser.Scene {
         yoyo: true,
         repeat: -1,
       });
+      this.currentTweens.push(tw);
     }
 
-    // Các nút lựa chọn
+    // Tạo nút chọn đáp án
+    this.optionButtons = [];
     this.optionTexts = [];
+
     const startY = height / 2 + 160;
     const gapX = 150;
     const startXOpt = width / 2 - (q.options.length - 1) * gapX * 0.5;
@@ -175,7 +219,6 @@ export default class GameScene extends Phaser.Scene {
         .setOrigin(0.5)
         .setAlpha(0);
 
-      // Fade in từng nút
       this.tweens.add({
         targets: [btn, txt],
         alpha: 1,
@@ -185,7 +228,6 @@ export default class GameScene extends Phaser.Scene {
         ease: "Back.Out",
       });
 
-      // Hover effect
       btn.on("pointerover", () =>
         this.tweens.add({ targets: btn, scale: 0.3, duration: 100 })
       );
@@ -194,6 +236,7 @@ export default class GameScene extends Phaser.Scene {
       );
       btn.on("pointerdown", () => this.handleAnswer(opt.isCorrect));
 
+      this.optionButtons.push(btn);
       this.optionTexts.push(txt);
     });
   }
@@ -203,6 +246,7 @@ export default class GameScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const iconKey = isCorrect ? "correct" : "wrong";
 
+    // Hiện icon đúng / sai
     const icon = this.add
       .image(width / 2, height / 2, iconKey)
       .setScale(0.4)
@@ -211,7 +255,7 @@ export default class GameScene extends Phaser.Scene {
     this.tweens.add({
       targets: icon,
       alpha: 1,
-      scale: 0.7,
+      scale: 0.4,
       ease: "Back.Out",
       duration: 300,
       yoyo: true,
@@ -219,18 +263,20 @@ export default class GameScene extends Phaser.Scene {
       onComplete: () => icon.destroy(),
     });
 
-    // Tiến trình
-    const progress =
-      ((this.currentQuestionIndex + 1) / this.levelData.questions.length) * 500;
-    this.tweens.add({
-      targets: this.progressFill,
-      width: progress,
-      duration: 400,
-      ease: "Sine.out",
-    });
-
-    // Nếu đúng → chuyển câu tiếp theo
     if (isCorrect) {
+      // Cập nhật tiến trình (sau khi đúng)
+      const progress =
+        ((this.currentQuestionIndex + 1) / this.levelData.questions.length) *
+        500;
+
+      this.tweens.add({
+        targets: this.progressFill,
+        width: progress,
+        duration: 500,
+        ease: "Sine.out",
+      });
+
+      // Chuyển câu sau 1s
       this.time.delayedCall(1000, () => {
         this.currentQuestionIndex++;
         if (this.currentQuestionIndex < this.levelData.questions.length) {
@@ -239,30 +285,38 @@ export default class GameScene extends Phaser.Scene {
           this.showLevelComplete();
         }
       });
+    } else {
+      // Nếu sai → thêm hiệu ứng rung (shake)
+      this.tweens.add({
+        targets: this.questionContainer,
+        x: "+=10",
+        yoyo: true,
+        repeat: 3,
+        duration: 80,
+      });
     }
   }
 
-  // HOÀN THÀNH LEVEL
+  // Hoàn thành Level
   showLevelComplete() {
     const { width, height } = this.scale;
-    const text = this.add
-      .text(width / 2, height / 2, "🎉 Bé giỏi quá! Hoàn thành rồi!", {
-        fontSize: "40px",
-        fontFamily: "Comic Sans MS",
-        color: "#ffb700",
-      })
-      .setOrigin(0.5)
+
+    // Ảnh chúc mừng hoàn thành
+    const completeIcon = this.add
+      .image(width / 2, height / 2, "level-complete")
       .setScale(0)
       .setAlpha(0);
 
+    // Animation hiển thị ảnh
     this.tweens.add({
-      targets: text,
+      targets: completeIcon,
       alpha: 1,
-      scale: 1,
-      ease: "Bounce",
+      scale: 0.4,
+      ease: "Back.Out",
       duration: 800,
     });
 
+    // Sau vài giây thì trở về MapScene
     this.time.delayedCall(2500, () => {
       this.cameras.main.fadeOut(400, 0, 0, 0);
       this.time.delayedCall(400, () => this.scene.start("MapScene"));
