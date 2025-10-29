@@ -1,4 +1,5 @@
 import * as Phaser from "phaser";
+import { speakWithFPT } from "../../utils/fptVoice.js";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -153,6 +154,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _renderQuestion(q, width, height) {
+    speakWithFPT(q.question);
     // Câu hỏi
     this.questionText = this.add
       .text(width / 2, height / 4 - 20, q.question, {
@@ -273,6 +275,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     if (isCorrect) {
+      speakWithFPT("Giỏi quá! Chính xác rồi!");
       // Phát âm thanh đúng (nếu chưa mute)
       if (!this.game.sound.mute)
         this.sound.play("sound-correct", { volume: 0.8 });
@@ -290,7 +293,7 @@ export default class GameScene extends Phaser.Scene {
       });
 
       // Chuyển câu sau 1s
-      this.time.delayedCall(1000, () => {
+      this.time.delayedCall(3000, () => {
         this.currentQuestionIndex++;
         if (this.currentQuestionIndex < this.levelData.questions.length) {
           this.showQuestion();
@@ -299,6 +302,7 @@ export default class GameScene extends Phaser.Scene {
         }
       });
     } else {
+      speakWithFPT("Sai rồi, thử lại nhé!");
       // Âm thanh sai
       if (!this.game.sound.mute)
         this.sound.play("sound-wrong", { volume: 0.8 });
@@ -332,7 +336,7 @@ export default class GameScene extends Phaser.Scene {
       ease: "Back.Out",
       duration: 800,
     });
-
+    speakWithFPT("Chúc mừng bé đã hoàn thành thử thách");
     // Sau vài giây thì trở về MapScene
     this.time.delayedCall(2500, () => {
       this.cameras.main.fadeOut(400, 0, 0, 0);
