@@ -17,8 +17,9 @@ export default class IntroScene extends Phaser.Scene {
     const steps = 30;
     for (let i = 0; i < steps; i++) {
       const color = Phaser.Display.Color.Interpolate.ColorWithColor(
-        new Phaser.Display.Color(30, 58, 138),
-        new Phaser.Display.Color(96, 165, 250),
+        new Phaser.Display.Color(153, 214, 214),
+        new Phaser.Display.Color(79, 177, 161),
+
         steps,
         i
       );
@@ -71,7 +72,7 @@ export default class IntroScene extends Phaser.Scene {
       this.cameras.main.fadeOut(1000, 0, 0, 0);
       this.cameras.main.once(
         Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
-        () => this.scene.start("PlayScene")
+        () => this.scene.start("MainMenu")
       );
     });
   }

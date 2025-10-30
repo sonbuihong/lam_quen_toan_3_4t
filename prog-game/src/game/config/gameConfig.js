@@ -1,5 +1,6 @@
 import * as Phaser from "phaser";
 import IntroScene from "../scenes/IntroScene";
+import MainMenu from "../scenes/MainMenu";
 
 const GameConfig = {
   type: Phaser.AUTO,
@@ -16,7 +17,7 @@ const GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
     orientation: Phaser.Scale.LANDSCAPE,
   },
-  scene: [IntroScene],
+  scene: [IntroScene, MainMenu],
 };
 
 export default GameConfig;
