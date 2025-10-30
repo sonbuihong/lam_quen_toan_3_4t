@@ -1,11 +1,12 @@
 import "./App.css";
+import GameCanvas from "./components/GameCanvas";
+import RotateNotice from "./components/RotateNotice";
 
-function App() {
+export default function App() {
   return (
-    <>
-      <h1 className="font-retro text-2xl text-green-500">Frog Jump Game</h1>
-    </>
+    <div className="flex items-center justify-center h-screen bg-blue-200">
+      <GameCanvas />
+      <RotateNotice />
+    </div>
   );
 }
-
-export default App;
