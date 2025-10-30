@@ -3,7 +3,7 @@
 ## 🧱 Cấu trúc & Scene
 
 - [x] Cấu hình Phaser + init game.
-- [] IntroScene + MainMenu.
+- [ ] IntroScene + MainMenu.
 - [ ] MapScene: map cuộn vô tận.
 - [ ] GameScene: gameplay ếch, lá sen, âm thanh.
 
