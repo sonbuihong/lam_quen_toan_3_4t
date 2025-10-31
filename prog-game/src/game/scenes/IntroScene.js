@@ -7,6 +7,7 @@ export default class IntroScene extends Phaser.Scene {
 
   preload() {
     this.load.image("logo", "/assets/ui/logo.png");
+    this.load.audio("bgMusic", "/assets/audio/bg_music.wav");
   }
 
   create() {
@@ -75,5 +76,13 @@ export default class IntroScene extends Phaser.Scene {
         () => this.scene.start("MainMenu")
       );
     });
+
+    if (!this.sound.get("bgMusic")) {
+      this.bgMusic = this.sound.add("bgMusic", {
+        volume: 0.3,
+        loop: true,
+      });
+      this.bgMusic.play();
+    }
   }
 }

@@ -157,7 +157,7 @@ export default class MainMenuScene extends Phaser.Scene {
       this.cameras.main.fadeOut(800, 0, 0, 0);
       this.cameras.main.once(
         Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
-        () => this.scene.start("MapScene")
+        () => this.scene.start("MapSceneInfinite")
       );
     });
 
