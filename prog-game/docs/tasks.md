@@ -21,4 +21,4 @@
 ## 🧪 Kiểm thử
 
 - [ ] Scale đúng trên các thiết bị khác nhau.
-- [ ] Kết thúc game khi đủ 20 điểm.
+- [x] Kết thúc game khi đủ 15 điểm.
