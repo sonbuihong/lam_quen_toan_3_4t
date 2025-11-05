@@ -13,8 +13,8 @@ export default class MapSceneInfinite extends Phaser.Scene {
     this.load.image("background", "/assets/background/background.png");
     this.load.image("lotus", "/assets/ui/lotus.png");
     this.load.image("number1", "/assets/ui/number_1.png");
-    this.load.image("gameBg", "/assets/background/background.png");
-    //this.load.image("gameBg", "/assets/background/background1.webp");
+    this.load.image("gameBg", "/assets/background/background1.png");
+    //this.load.image("gameBg", "/assets/background/background.png");
 
     this.load.audio("so1", "/assets/audio/so1.mp3");
     this.load.audio("jump", "/assets/audio/jump.wav");
@@ -93,7 +93,7 @@ export default class MapSceneInfinite extends Phaser.Scene {
         cam.scrollX - 200,
         cam.scrollX + cam.width + 200
       );
-      const spawnY = Phaser.Math.Between(320, 560);
+      const spawnY = Phaser.Math.Between(320, 500);
       const direction = Phaser.Math.Between(0, 1) === 0 ? 1 : -1;
 
       const fish = this.add.graphics();
@@ -202,7 +202,7 @@ export default class MapSceneInfinite extends Phaser.Scene {
   createInitialLotuses() {
     this.lotuses = [];
     const startX = 150;
-    const startY = this.scale.height / 2 + 50;
+    const startY = this.scale.height / 2 - 50;
 
     for (let i = 0; i < 10; i++) {
       const lotus = this.spawnLotus(
@@ -351,7 +351,7 @@ export default class MapSceneInfinite extends Phaser.Scene {
     const lastPad = this.lotuses[this.lotuses.length - 1];
     for (let i = 1; i <= 5; i++) {
       const newX = lastPad.x + i * 200;
-      const newY = this.scale.height / 2 + 50 + Phaser.Math.Between(-20, 20);
+      const newY = this.scale.height / 2 + Phaser.Math.Between(-20, 20);
       const newLotus = this.spawnLotus(newX, newY);
       this.lotuses.push(newLotus);
       newLotus.setInteractive({ useHandCursor: true });
