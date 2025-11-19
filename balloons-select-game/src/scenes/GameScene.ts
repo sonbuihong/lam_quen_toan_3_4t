@@ -17,12 +17,6 @@ export default class GameScene extends Phaser.Scene {
     promptText!: Phaser.GameObjects.Text;
     balloons: Phaser.GameObjects.Container[] = [];
 
-    // levelData = {
-    // prompt: "Chạm vào số 4",
-    // correctNumber: 4,
-    // options: [1, 2, 3, 4],
-    // };
-
     currentLevel = 0;
     levels: LevelData[] = [
         { correctNumber: 1, options: [1,2,3,4] },
@@ -30,6 +24,15 @@ export default class GameScene extends Phaser.Scene {
         { correctNumber: 3, options: [1,2,3,4] },
         { correctNumber: 4, options: [1,2,3,4] },
     ];
+
+    constructor() {
+        super("GameScene");
+    }
+
+    // ⭐ Giữ level khi restart
+    init(data: any) {
+        this.currentLevel = data?.level ?? 0;
+    }
 
     get levelData() {
         return this.levels[this.currentLevel];
@@ -46,11 +49,6 @@ export default class GameScene extends Phaser.Scene {
         
         // play audio
         this.sound.play(audioKey);
-    }
-
-
-    constructor() {
-        super("GameScene");
     }
 
     preload() {
@@ -82,6 +80,11 @@ export default class GameScene extends Phaser.Scene {
         this.load.audio("sfx_click", "assets/audio/sfx_click.wav");
         // this.load.audio("sfx_pop", "assets/audio/sfx_pop.mp3");
         // this.load.audio("sfx_flyaway", "assets/audio/sfx_flyaway.mp3");
+
+        this.load.audio("vo_count_1", "assets/audio/vo_count_1.mp3");
+        this.load.audio("vo_count_2", "assets/audio/vo_count_2.mp3");
+        this.load.audio("vo_count_3", "assets/audio/vo_count_3.mp3");
+        this.load.audio("vo_count_4", "assets/audio/vo_count_4.mp3");
     }
 
 
@@ -132,7 +135,7 @@ export default class GameScene extends Phaser.Scene {
             const colorKey = shuffledColors[index];
 
             // Tạo container gồm: balloon sprite + text số
-            const balloon = this.add.container(pos.x, pos.y);
+            const balloon = this.add.container(pos.x, -100); // bắt đầu từ y=-100 (phía trên màn hình)
 
             const img = this.add.image(0, 0, colorKey).setScale(0.8);
             const text = this.add.text(0, 0, String(num), {
@@ -156,6 +159,26 @@ export default class GameScene extends Phaser.Scene {
             });
 
             this.balloons.push(balloon);
+
+            this.tweens.add({
+                targets: balloon,
+                y: pos.y,
+                duration: 1500,
+                ease: "Bounce.easeOut",
+                onComplete: () => {
+                    // 2. Pulse liên tục sau khi rơi
+                    this.tweens.add({
+                        targets: balloon,
+                        scaleX: 0.88, // scale gốc 0.8 → phóng to 10% ra ngoài container
+                        scaleY: 0.88,
+                        yoyo: true,
+                        repeat: -1,
+                        duration: 800,
+                        ease: "Sine.easeInOut",
+                        // delay: index * 100 // delay khác nhau cho mỗi bóng
+                    });
+                }
+            });
         });
     }
     handleSelect(balloon: Phaser.GameObjects.Container) {
@@ -199,18 +222,21 @@ export default class GameScene extends Phaser.Scene {
         const img = balloon.getAt(0) as Phaser.GameObjects.Image;
         this.tweens.add({
             targets: img,
-            scale: 0,
-            duration: 250,
-            ease: "Back.easeIn",
+            // x: this.cameras.main.centerX,  // di chuyển ra giữa màn hình X
+            // y: this.cameras.main.centerY,
+            scaleX: 1.5,  // phóng to 50%
+            scaleY: 1.5,
+            duration: 1000,
+            ease: "Power2",
             onComplete: () => {
-            // Optionally destroy container
-            balloon.destroy();
-            // this.sound.play("sfx_pop");
-            // 🟢 Hiển thị bảng số lượng sau pop
-            const items = ["apple", "flower", "carrot", "leaf"];
-            const itemKey = items[Math.floor(Math.random() * items.length)];
-            this.showNumberBoard(this.levelData.correctNumber, itemKey);
-            // this.showNumberBoard(this.levelData.correctNumber, "apple");
+                // Optionally destroy container
+                balloon.destroy();
+                // this.sound.play("sfx_pop");
+                // 🟢 Hiển thị bảng số lượng sau pop
+                const items = ["apple", "flower", "carrot", "leaf"];
+                const itemKey = items[Math.floor(Math.random() * items.length)];
+                this.showNumberBoard(this.levelData.correctNumber, itemKey);
+                // this.showNumberBoard(this.levelData.correctNumber, "apple");
             }
         });
 
@@ -258,7 +284,7 @@ export default class GameScene extends Phaser.Scene {
                 if (this.currentLevel >= this.levels.length) {
                     this.scene.start("EndScene");
                 } else {
-                    this.scene.restart();
+                    this.scene.restart({ level: this.currentLevel });
                 }
             });
         });
@@ -299,9 +325,24 @@ export default class GameScene extends Phaser.Scene {
             const x = startX + col * (itemSize + padding);
             const y = startY + row * (itemSize + padding);
 
-            this.add.image(x, y, itemKey).setDisplaySize(itemSize, itemSize);
-        }
+            // this.add.image(x, y, itemKey).setDisplaySize(itemSize, itemSize);
 
+            // Hiển thị từng item với delay
+            this.time.delayedCall(i * 500, () => { // mỗi item cách nhau 0.5s
+                const img = this.add.image(x, y, itemKey).setDisplaySize(itemSize, itemSize);
+
+                // Tùy chọn: thêm tween nhỏ để “nảy” khi xuất hiện
+                this.tweens.add({
+                    targets: img,
+                    scale: { from: 0, to: 1 },
+                    ease: 'Back.easeOut',
+                    duration: 400
+                });
+
+                // Phát audio đếm số
+            this.sound.play(`vo_count_${i + 1}`, { volume: 1 });
+            });
+        }
         // **Cập nhật banner trên cùng**
         this.promptText.setText(`${number}`);
     }
