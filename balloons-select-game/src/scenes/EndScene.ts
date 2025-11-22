@@ -23,7 +23,8 @@ export class EndScene extends Phaser.Scene {
         this.load.audio('complete', 'assets/audio/complete.mp3');
 
         // Âm thanh chiến thắng
-        this.load.audio('sfx_congrat', 'assets/audio/sfx_congrat.mp3');
+        this.load.audio('fireworks', 'assets/audio/fireworks.mp3');
+        this.load.audio('applause', 'assets/audio/applause.mp3');
     }
 
     create() {
@@ -34,9 +35,9 @@ export class EndScene extends Phaser.Scene {
         this.sound.play('complete');
 
         // Phát âm thanh chiến thắng
-        // this.sound.play('sfx_congrat');
         this.time.delayedCall(2000, () => {
-            this.sound.play('sfx_congrat');
+            this.sound.play('fireworks');
+            this.sound.play('applause');
         });
 
         // ==== Banner ảnh chúc mừng ====

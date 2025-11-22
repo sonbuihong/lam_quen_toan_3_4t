@@ -14,7 +14,7 @@ body {
     justify-content: center;
     align-items: center;
     touch-action: none;
-    background: url('./public/assets/images/bg_forest.png'); /* màu nền khi canvas nhỏ hơn màn hình */
+    background: url('./assets/images/bg_forest.png'); /* màu nền khi canvas nhỏ hơn màn hình */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

@@ -573,7 +573,7 @@ export default class GameScene extends Phaser.Scene {
         nextButton.once('pointerdown', () => {
             this.sound.play('sfx_click');
 
-            this.time.delayedCall(1000, () => {
+            this.time.delayedCall(300, () => {
                 this.currentLevel++;
                 if (this.currentLevel >= this.levels.length) {
                     this.scene.start('EndScene');
