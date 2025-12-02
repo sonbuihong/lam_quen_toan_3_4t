@@ -50,6 +50,12 @@ const CHARACTER_GAP_Y = BASE_CHARACTER_GAP_Y * BOARD_SCALE;
 
 // ===== LAYOUT – các hằng số dễ chỉnh vị trí UI =====
 
+// Offset X nhân vật theo từng loại đồ vật
+const CHARACTER_OFFSET_X: Record<Subject, { left: number; right: number }> = {
+  BALLOON: { left: 25.0, right: 60.0 },
+  FLOWER: { left: -30.0, right: -30.0 }
+};
+
 // Tỉ lệ cột trái/phải trên board
 const LEFT_COL_RATIO = 0.3;
 const RIGHT_COL_RATIO = 0.7;
@@ -70,10 +76,6 @@ const BUTTON_BOTTOM_MARGIN = 60;
 const BUTTON_OFFSET_Y = 0;
 const BUTTON_OFFSET_X_LEFT = 0;
 const BUTTON_OFFSET_X_RIGHT = 0;
-
-// Offset X nhân vật so với cột
-const CHARACTER_OFFSET_X_LEFT = 20.0;
-const CHARACTER_OFFSET_X_RIGHT = 60.0;
 
 // Font size (gốc) cho câu hỏi & feedback (nhân với BOARD_SCALE)
 const PROMPT_FONT_SIZE = 30;
@@ -97,12 +99,18 @@ export default class GameScene extends Phaser.Scene {
 
   private leftBtn!: Phaser.GameObjects.Image;
   private rightBtn!: Phaser.GameObjects.Image;
+  private questionBanner!: Phaser.GameObjects.Image;
 
   private girlSprite!: Phaser.GameObjects.Image;
   private boySprite!: Phaser.GameObjects.Image;
 
   private levelSubjects: Subject[] = [];
   private levelQuestions: string[] = [];
+
+  // đánh dấu việc vào / hoàn thành màn phụ (BalanceScene) cho level hiện tại
+  public subgameEntered = false;
+
+  public subgameDone = false; 
 
   constructor() {
     super('GameScene');
@@ -112,6 +120,10 @@ export default class GameScene extends Phaser.Scene {
     this.levelIndex = data.levelIndex ?? 0;
     this.level = this.levelIndex;
     this.score = data.score ?? 0;
+
+    // mỗi lần vào GameScene cho level mới, reset trạng thái màn phụ
+    this.subgameEntered = false;
+    this.subgameDone = false;
 
     const globalKey = '__comparisonLevels__';
 
@@ -134,13 +146,13 @@ export default class GameScene extends Phaser.Scene {
   // để main.ts dùng check khi bấm nút "Next"
   public isLevelComplete(): boolean {
     // coi như level hoàn thành khi đã trả lời xong câu hỏi (đúng/sai đều đã xử lý)
-    return this.gameState !== 'WAIT_CHOICE';
+    return this.subgameDone;
   }
 
   create() {
     const { width, height } = this.scale;
 
-    // ẨN NÚT VIEWPORT HTML KHI VÀO MÀN CÂU HỎI
+    // Ẩn nút HTML ở màn câu hỏi, chỉ hiện khi sang màn phụ (BalanceScene)
     if ((window as any).setGameButtonsVisible) {
       (window as any).setGameButtonsVisible(false);
     }
@@ -149,6 +161,26 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // BOARD
+
+    // Gắn asset cho nút HTML trên viewport
+    const replayBtnEl = document.getElementById('btn-replay') as
+      | HTMLButtonElement
+      | null;
+    const nextBtnEl = document.getElementById('btn-next') as
+      | HTMLButtonElement
+      | null;
+
+    const setBtnBgFromUrl = (el: HTMLButtonElement | null, url?: string) => {
+      if (!el || !url) return;
+      el.style.backgroundImage = `url("${url}")`;
+      el.style.backgroundRepeat = 'no-repeat';
+      el.style.backgroundPosition = 'center';
+      el.style.backgroundSize = 'contain';
+    };
+
+    setBtnBgFromUrl(replayBtnEl, '/assets/button/replay.png');
+    setBtnBgFromUrl(nextBtnEl, '/assets/button/next.png');
+
     const boardX = (width - BOARD_WIDTH) / 2;
     const boardY = BOARD_TOP_Y;
 
@@ -163,10 +195,10 @@ export default class GameScene extends Phaser.Scene {
 
     // Banner Câu hỏi
     const bannerY = BANNER_Y;
-    const banner = this.add
+    this.questionBanner = this.add
       .image(width / 2, bannerY, 'btn_primary_pressed')
       .setOrigin(0.5);
-    banner.setScale(BANNER_SCALE * BOARD_SCALE);
+    this.questionBanner.setScale(BANNER_SCALE * BOARD_SCALE);
 
     this.promptText = this.add
       .text(width / 2, bannerY, '', {
@@ -201,12 +233,13 @@ export default class GameScene extends Phaser.Scene {
       .on('pointerdown', () => this.handleChoice('RIGHT'));
 
     // NHÂN VẬT
-    const firstSubject = this.levelSubjects[0] ?? 'BALLOON';
+    const currentSubject = this.levelSubjects[this.levelIndex] ?? 'BALLOON';
+    const subjectOffset = CHARACTER_OFFSET_X[currentSubject];
 
     // Girl
-    const girlX = baseLeftColX + CHARACTER_OFFSET_X_LEFT;
+    const girlX = baseLeftColX + subjectOffset.left;
     this.girlSprite = this.add
-      .image(girlX, 0, GIRL_TEXTURE[firstSubject])
+      .image(girlX, 0, GIRL_TEXTURE[currentSubject])
       .setScale(CHARACTER_SCALE);
     const girlY =
       btnY -
@@ -216,9 +249,9 @@ export default class GameScene extends Phaser.Scene {
     this.girlSprite.setY(girlY);
 
     // Boy
-    const boyX = baseRightColX + CHARACTER_OFFSET_X_RIGHT;
+    const boyX = baseRightColX + subjectOffset.right;
     this.boySprite = this.add
-      .image(boyX, 0, BOY_TEXTURE[firstSubject])
+      .image(boyX, 0, BOY_TEXTURE[currentSubject])
       .setScale(CHARACTER_SCALE);
     const boyY =
       btnY -
@@ -244,25 +277,29 @@ export default class GameScene extends Phaser.Scene {
     subjects: Subject[];
     questions: string[];
   } {
-    // 2 bóng + 2 hoa
-    const subjectPool: Subject[] = ['BALLOON', 'BALLOON', 'FLOWER', 'FLOWER'];
+    // Tạo đủ 4 kiểu màn khác nhau, không lặp:
+    // BALLOON-MORE, BALLOON-LESS, FLOWER-MORE, FLOWER-LESS
+    const combos: { subject: Subject; mode: CompareMode }[] = [
+      { subject: 'BALLOON', mode: 'MORE' },
+      { subject: 'BALLOON', mode: 'LESS' },
+      { subject: 'FLOWER', mode: 'MORE' },
+      { subject: 'FLOWER', mode: 'LESS' }
+    ];
 
     // shuffle
-    for (let i = subjectPool.length - 1; i > 0; i--) {
+    for (let i = combos.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [subjectPool[i], subjectPool[j]] = [subjectPool[j], subjectPool[i]];
+      [combos[i], combos[j]] = [combos[j], combos[i]];
     }
 
     const levels: LevelConfig[] = [];
     const subjects: Subject[] = [];
     const questions: string[] = [];
 
-    const total = Math.min(numLevels, subjectPool.length);
+    const total = Math.min(numLevels, combos.length);
 
     for (let i = 0; i < total; i++) {
-      const subject = subjectPool[i];
-
-      const mode: CompareMode = Math.random() < 0.5 ? 'MORE' : 'LESS';
+      const { subject, mode } = combos[i];
 
       let text: string;
       if (subject === 'BALLOON') {
@@ -299,6 +336,17 @@ export default class GameScene extends Phaser.Scene {
     const subject = this.levelSubjects[this.levelIndex];
 
     this.promptText.setText(this.levelQuestions[this.levelIndex]);
+
+    // Điều chỉnh banner theo độ rộng câu hỏi
+    const textWidth = this.promptText.width;
+    const baseBannerWidth = this.questionBanner.width;
+    const padding = 80; // khoảng dư 2 bên text
+    const minBannerWidth = 600;
+    const desiredWidth = Math.max(minBannerWidth, textWidth + padding);
+    const scaleX = desiredWidth / baseBannerWidth;
+    const scaleY = BANNER_SCALE * BOARD_SCALE;
+    this.questionBanner.setScale(scaleX, scaleY);
+
     this.girlSprite.setTexture(GIRL_TEXTURE[subject]);
     this.boySprite.setTexture(BOY_TEXTURE[subject]);
 
@@ -324,9 +372,13 @@ export default class GameScene extends Phaser.Scene {
         : chosenCount > otherCount;
 
     if (isCorrect) {
+      // đã trả lời đúng và chuẩn bị sang màn phụ
+      this.subgameEntered = true;
+
       this.score++;
-      this.feedbackText.setText('Đúng rồi! Giỏi quá!');
-      this.sound.play('sfx_correct');
+      // dùng âm thanh thay cho text feedback
+      (window as any).playVoiceLocked(this.sound, 'sfx_correct');
+      (window as any).playVoiceLocked(this.sound, 'correct');
 
       const chosenBtn = side === 'LEFT' ? this.leftBtn : this.rightBtn;
       const otherBtn = side === 'LEFT' ? this.rightBtn : this.leftBtn;
@@ -342,7 +394,8 @@ export default class GameScene extends Phaser.Scene {
       }
 
       // ❗ CHỈ GỬI levelIndex HIỆN TẠI, KHÔNG +1
-      this.time.delayedCall(700, () => {
+      // Tăng delay để âm thanh đúng được phát hết trước khi chuyển màn
+      this.time.delayedCall(2000, () => {
         this.scene.start('BalanceScene', {
           leftCount: level.leftCount,
           rightCount: level.rightCount,
@@ -353,8 +406,10 @@ export default class GameScene extends Phaser.Scene {
         });
       });
     } else {
-      this.feedbackText.setText('Chưa đúng, chọn lại nhé!');
-      this.sound.play('sfx_wrong');
+      // dùng âm thanh thay cho text feedback
+      
+      (window as any).playVoiceLocked(this.sound, 'sfx_wrong');
+      (window as any).playVoiceLocked(this.sound, 'wrong');
 
       const chosenBtn = side === 'LEFT' ? this.leftBtn : this.rightBtn;
       chosenBtn.setTexture(ANSWER_WRONG);

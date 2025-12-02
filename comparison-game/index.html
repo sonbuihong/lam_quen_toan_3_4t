@@ -27,6 +27,11 @@
         align-items: center;
         touch-action: none;
         overflow: hidden;
+        /* Để background của viewport (nếu có) không bị phóng to cắt mất,
+           platform có thể set background-image vào game-container */
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: contain;
     }
 
     canvas {
@@ -55,10 +60,14 @@
 
     #btn-replay {
         left: 2%;
+        /* icon nút quay lại – dùng chính file png bạn preload */
+        background-image: url('assets/btn_replay.png');
     }
 
     #btn-next {
         right: 2%;
+        /* icon nút next – dùng chính file png bạn preload */
+        background-image: url('assets/btn_next.png');
     }
 
 
@@ -72,6 +81,52 @@
         <button id="btn-next" class="top-btn"></button>
 
         <div id="game-container"></div>
+        <script>
+          (function () {
+            const replayBtn = document.getElementById('btn-replay');
+            const nextBtn = document.getElementById('btn-next');
+
+            console.log('[CompareGame] HTML loaded, buttons:', {
+              replayBtn,
+              nextBtn
+            });
+
+            // Hàm để Phaser gọi (đã dùng trong GameScene/BalanceScene)
+            (window).setGameButtonsVisible = function (visible) {
+              console.log('[CompareGame] setGameButtonsVisible:', visible);
+              if (!replayBtn || !nextBtn) return;
+              const display = visible ? 'block' : 'none';
+              replayBtn.style.display = display;
+              nextBtn.style.display = display;
+            };
+
+            // Hàm set background viewport cho game-container, tránh zoom to
+            (window).setRandomGameViewportBg = function () {
+              console.log('[CompareGame] setRandomGameViewportBg: apply bg to #game-container');
+              const container = document.getElementById('game-container');
+              if (!container) return;
+              // Ví dụ chọn ngẫu nhiên 1 số background (nếu platform không override)
+              const bgs = [
+                'url(assets/bg_1.png)',
+                'url(assets/bg_2.png)',
+                'url(assets/bg_3.png)'
+              ];
+              const idx = Math.floor(Math.random() * bgs.length);
+              container.style.backgroundImage = bgs[idx];
+              container.style.backgroundRepeat = 'no-repeat';
+              container.style.backgroundPosition = 'center center';
+              container.style.backgroundSize = 'contain'; // không zoom quá
+            };
+
+            // Log vị trí & kích thước sau khi layout xong
+            window.addEventListener('load', () => {
+              if (replayBtn && nextBtn) {
+                console.log('[CompareGame] btn-replay rect:', replayBtn.getBoundingClientRect());
+                console.log('[CompareGame] btn-next rect:', nextBtn.getBoundingClientRect());
+              }
+            });
+          })();
+        </script>
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>

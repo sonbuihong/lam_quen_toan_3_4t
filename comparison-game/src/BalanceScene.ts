@@ -1,4 +1,7 @@
 import Phaser from 'phaser';
+import type GameScene from './GameScene';
+
+
 
 type Subject = 'BALLOON' | 'FLOWER';
 
@@ -21,6 +24,16 @@ const GIRL_UPGRADE_TEXTURE: Record<Subject, string> = {
 const BOY_UPGRADE_TEXTURE: Record<Subject, string> = {
   BALLOON: 'boy_balloon_plus',
   FLOWER: 'boy_flower_plus',
+};
+
+const HAND_OFFSET: Record<Subject, { x: number; y: number }> = {
+  BALLOON: { x: 55, y: -80 },
+  FLOWER: { x: 40, y: -40 },
+};
+
+const UPGRADE_OFFSET: Record<Subject, { x: number; y: number }> = {
+  BALLOON: { x: 50, y: 0 },
+  FLOWER: { x: 0, y: 0 },
 };
 
 type BalanceInitData = {
@@ -88,14 +101,15 @@ export default class BalanceScene extends Phaser.Scene {
     const banner = this.add
       .image(width / 2, bannerY, 'btn_primary_pressed')
       .setOrigin(0.5);
-    banner.setScale(0.65);
+    const bannerBaseScaleY = 0.65;
+    banner.setScale(bannerBaseScaleY);
 
     const bannerText =
       this.subject === 'BALLOON'
         ? 'THÊM BÓNG BAY CHO HAI BẠN BẰNG NHAU NHÉ!'
-        : 'THÊM HOA CHO HAI BẠN BẰNG NHAU NHÉ!';
+        : 'THÊM BÔNG HOA CHO HAI LỌ BẰNG NHAU NHÉ!';
 
-    this.add
+    const titleText = this.add
       .text(width / 2, bannerY, bannerText, {
         fontFamily: 'San Francisco, "Noto Sans", system-ui, sans-serif',
         fontSize: '30px',
@@ -104,6 +118,15 @@ export default class BalanceScene extends Phaser.Scene {
         align: 'center',
       })
       .setOrigin(0.5);
+
+    // Tự động kéo dài banner để ôm trọn text
+    const textWidth = titleText.width;
+    const baseBannerWidth = banner.width;
+    const padding = 200; // tăng khoảng dư hai bên cho thoải mái hơn
+    const minBannerWidth = 800;
+    const desiredWidth = Math.max(minBannerWidth, textWidth + padding);
+    const scaleX = desiredWidth / baseBannerWidth;
+    banner.setScale(scaleX, bannerBaseScaleY);
 
     // Panel trái
     const leftPanelX = 80;
@@ -185,13 +208,19 @@ export default class BalanceScene extends Phaser.Scene {
       ? boyUpKeyCandidate
       : boyBaseKey;
 
+    const upgradeOffset = UPGRADE_OFFSET[this.subject];
+
     // Girl – base & upgraded luôn cùng (x,y), origin 0.5 nên ở đúng giữa nửa panel
     this.girlBase = this.add
       .image(this.leftActorCenterX, this.actorY, girlBaseKey)
       .setOrigin(0.5, 0.5)
       .setScale(girlScale);
     this.girlUpgraded = this.add
-      .image(this.leftActorCenterX, this.actorY, girlUpgradeKey)
+      .image(
+        this.leftActorCenterX + upgradeOffset.x,
+        this.actorY + upgradeOffset.y,
+        girlUpgradeKey
+      )
       .setOrigin(0.5, 0.5)
       .setScale(girlScale)
       .setAlpha(0);
@@ -202,7 +231,11 @@ export default class BalanceScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5)
       .setScale(boyScale);
     this.boyUpgraded = this.add
-      .image(this.rightActorCenterX, this.actorY, boyUpgradeKey)
+      .image(
+        this.rightActorCenterX + upgradeOffset.x,
+        this.actorY + upgradeOffset.y,
+        boyUpgradeKey
+      )
       .setOrigin(0.5, 0.5)
       .setScale(boyScale)
       .setAlpha(0);
@@ -246,13 +279,12 @@ export default class BalanceScene extends Phaser.Scene {
     });
 
     // vùng valid quanh tay / bình hoa
-    const handOffsetX = this.subject === 'BALLOON' ? 55 : 40;
-    const handOffsetY = this.subject === 'BALLOON' ? -80 : -40;
+    const handOffset = HAND_OFFSET[this.subject];
 
     const targetActorCenterX =
       upgradeSide === 'LEFT' ? this.leftActorCenterX : this.rightActorCenterX;
-    const targetX = targetActorCenterX + handOffsetX;
-    const targetY = this.actorY + handOffsetY;
+    const targetX = targetActorCenterX + handOffset.x;
+    const targetY = this.actorY + handOffset.y;
 
     draggable.on('dragend', () => {
       const dist = Phaser.Math.Distance.Between(
@@ -278,12 +310,14 @@ export default class BalanceScene extends Phaser.Scene {
         const upgradedSprite =
           upgradeSide === 'LEFT' ? this.girlUpgraded : this.boyUpgraded;
 
-        // đảm bảo upgraded giữ đúng tâm nửa panel
-        upgradedSprite.setPosition(
+        const upgradedCenterX =
           upgradeSide === 'LEFT'
             ? this.leftActorCenterX
-            : this.rightActorCenterX,
-          this.actorY
+            : this.rightActorCenterX;
+
+        upgradedSprite.setPosition(
+          upgradedCenterX + upgradeOffset.x,
+          this.actorY + upgradeOffset.y
         );
 
         // base mờ dần
@@ -300,32 +334,33 @@ export default class BalanceScene extends Phaser.Scene {
           duration: 220,
           delay: 80,
           onComplete: () => {
-            this.feedbackText.setText('Tuyệt vời! Hai bạn đã bằng nhau!');
-            this.time.delayedCall(900, () => {
-              this.scene.start(this.nextSceneKey, {
-                score: this.score,
-                levelIndex: this.levelIndex + 1,
-              });
-            });
+            // phát voice khen bé kéo xong
+            (window as any).playVoiceLocked(this.sound, 'voice_complete');
+
+            // báo cho GameScene biết màn phụ đã xong
+            const gameScene = this.scene.get('GameScene') as GameScene | null;
+            if (gameScene) {
+              gameScene.subgameDone = true;
+            }
+            // Không auto chuyển màn, chờ bé bấm nút Next (HTML)
           },
         });
+
       } else {
         draggable.x = startX;
         draggable.y = startY;
       }
     });
 
-    const feedbackBaseText =
-      this.subject === 'BALLOON'
-        ? 'Kéo bóng sang cho đủ nhé!'
-        : 'Kéo hoa sang cho đủ nhé!';
+    // bỏ text hướng dẫn kéo, chỉ giữ lại voice/âm thanh (nếu có)
+    (window as any).playVoiceLocked(this.sound, 'drag');
 
-    this.feedbackText = this.add
-      .text(width / 2, height - 50, feedbackBaseText, {
-        fontSize: '26px',
-        color: '#333',
-        fontFamily: 'Fredoka',
-      })
-      .setOrigin(0.5);
+  //   this.feedbackText = this.add
+  //     .text(width / 2, height - 50, feedbackBaseText, {
+  //       fontSize: '26px',
+  //       color: '#333',
+  //       fontFamily: 'Fredoka',
+  //     })
+  //     .setOrigin(0.5);
   }
 }

@@ -38,7 +38,7 @@ export default class BaseScene extends Phaser.Scene {
 
     btn.on('pointerdown', () => {
       btn.setTexture('btn_primary_pressed');
-      this.sound.play('sfx_click');
+      (window as any).playVoiceLocked(this.sound, 'sfx_click');
     });
 
     btn.on('pointerup', () => {
