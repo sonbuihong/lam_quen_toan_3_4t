@@ -45,9 +45,6 @@ type BalanceInitData = {
 };
 
 export default class BalanceScene extends Phaser.Scene {
-  private leftCount = 0;
-  private rightCount = 0;
-
   private subject: Subject = 'BALLOON';
 
   // layout
@@ -73,9 +70,6 @@ export default class BalanceScene extends Phaser.Scene {
   }
 
   init(data: BalanceInitData) {
-    this.leftCount = data.leftCount;
-    this.rightCount = data.rightCount;
-
     this.subject = data.subject ?? 'BALLOON';
     this.upgradeCharacter = data.lessCharacter ?? 'GIRL';
   }
