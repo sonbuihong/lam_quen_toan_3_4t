@@ -89,17 +89,10 @@ function setGameButtonsVisible(visible: boolean) {
   const nextBtn = document.getElementById("btn-next") as
     | HTMLButtonElement
     | null;
-  // Luôn để nút hiển thị; logic khóa Next nằm trong GameScene.isLevelComplete()
   const display = visible ? "block" : "none";
   if (replayBtn) replayBtn.style.display = display;
   if (nextBtn) nextBtn.style.display = display;
 }
-(Object.assign(window as any, {
-  setRandomIntroViewportBg,
-  setRandomGameViewportBg,
-  setRandomEndViewportBg,
-  setGameButtonsVisible,
-}));
 
 // ================== CSS CHO CONTAINER (TRONG SUỐT) ==================
 if (container instanceof HTMLDivElement) {
@@ -137,7 +130,8 @@ function ensureRotateOverlay() {
   box.style.padding = "16px 20px";
   box.style.maxWidth = "320px";
   box.style.margin = "0 auto";
-  box.style.fontFamily = '"Fredoka", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  box.style.fontFamily =
+    '"Fredoka", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   box.style.boxShadow = "0 8px 24px rgba(0,0,0,0.25)";
   const title = document.createElement("div");
   title.textContent = "Bé Hãy Xoay Ngang Màn Hình Để Chơi Nhé 🌈";
@@ -179,30 +173,64 @@ const config: Phaser.Types.Core.GameConfig = {
     pixelArt: false,
     antialias: true,
   },
-  scene: [PreloadScene, GameScene,BalanceScene, EndGameScene],
+  scene: [PreloadScene, GameScene, BalanceScene, EndGameScene],
 };
+
 // ========== HÀM CHỐNG SPAM / CHỒNG VOICE ==========
+// Cho phép voice ưu tiên cao (complete / need_finish) ngắt voice thấp (drag / question),
+// nhưng nếu voice đang phát có priority >= mới thì bỏ qua.
 let currentVoice: Phaser.Sound.BaseSound | null = null;
+let currentVoiceKey: string | null = null;
+
+function getVoicePriority(key: string): number {
+  // Ưu tiên thấp: drag / câu hỏi
+  if (key.startsWith("drag_") || key.startsWith("q_")) return 1;
+  // Trung bình: đúng / sai
+  if (key === "correct" || key === "wrong") return 2;
+  // Cao: need_finish
+  if (key === "voice_need_finish") return 3;
+  // Cao nhất: complete
+  if (key === "voice_complete") return 4;
+  // Mặc định
+  return 1;
+}
 
 export function playVoiceLocked(
   sound: Phaser.Sound.BaseSoundManager,
   key: string
 ): void {
-  // Nếu đang có voice phát thì bỏ qua mọi lần gọi thêm
-  if (currentVoice && currentVoice.isPlaying) {
+  const newPri = getVoicePriority(key);
+  const curPri = currentVoiceKey ? getVoicePriority(currentVoiceKey) : 0;
+
+  // Nếu đang có voice chạy với priority >= mới thì bỏ qua (không chồng)
+  if (currentVoice && currentVoice.isPlaying && curPri >= newPri) {
     return;
+  }
+
+  // Nếu voice mới ưu tiên cao hơn thì dừng voice cũ trước
+  if (currentVoice && currentVoice.isPlaying && curPri < newPri) {
+    currentVoice.stop();
+    currentVoice = null;
+    currentVoiceKey = null;
   }
 
   let instance = sound.get(key) as Phaser.Sound.BaseSound | null;
   if (!instance) {
-    instance = sound.add(key);  // có thể thêm { volume } nếu muốn chỉnh volume riêng
+    try {
+      instance = sound.add(key);
+    } catch (e) {
+      console.warn(`[CompareGame] Không phát được audio key="${key}":`, e);
+      return;
+    }
   }
   if (!instance) return;
 
   currentVoice = instance;
-  instance.once('complete', () => {
+  currentVoiceKey = key;
+  instance.once("complete", () => {
     if (currentVoice === instance) {
-      currentVoice = null; // phát xong mới cho lần click tiếp theo
+      currentVoice = null;
+      currentVoiceKey = null;
     }
   });
   instance.play();
@@ -216,7 +244,6 @@ export function playVoiceLocked(
   setGameButtonsVisible,
   playVoiceLocked, // 👈
 }));
-
 
 function setupHtmlButtons() {
   const replayBtn = document.getElementById("btn-replay");
@@ -240,49 +267,49 @@ function setupHtmlButtons() {
     });
   }
 
-const nextBtn = document.getElementById("btn-next");
-if (nextBtn) {
-  nextBtn.addEventListener("click", () => {
-    if (!game) return;
-    const scene = game.scene.getScene("GameScene") as GameScene;
-    if (!scene) return;
+  const nextBtn = document.getElementById("btn-next");
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      if (!game) return;
+      const scene = game.scene.getScene("GameScene") as GameScene;
+      if (!scene) return;
 
-    // Lấy trạng thái màn phụ
-    const anyScene = scene as any;
-    const subEntered = !!anyScene.subgameEntered;
-    const subDone = !!anyScene.subgameDone;
+      // Lấy trạng thái màn phụ
+      const anyScene = scene as any;
+      const subEntered = !!anyScene.subgameEntered;
+      const subDone = !!anyScene.subgameDone;
 
-    // Chưa vào màn phụ -> cho Next luôn.
-    // Đã vào màn phụ -> phải subgameDone mới được Next.
-    const canNext = !subEntered || subDone;
-    if (!canNext) {
-      playVoiceLocked(scene.sound, "voice_need_finish");
-      return;
-    }
+      // Chưa vào màn phụ -> cho Next luôn.
+      // Đã vào màn phụ -> phải subgameDone mới được Next.
+      const canNext = !subEntered || subDone;
+      if (!canNext) {
+        playVoiceLocked(scene.sound, "voice_need_finish");
+        return;
+      }
 
-    // Nếu đang đứng ở BalanceScene thì tắt nó trước
-    const balance = game.scene.getScene("BalanceScene");
-    if (balance && balance.scene.isActive()) {
-      balance.scene.stop();
-    }
+      // Nếu đang đứng ở BalanceScene thì tắt nó trước
+      const balance = game.scene.getScene("BalanceScene");
+      if (balance && balance.scene.isActive()) {
+        balance.scene.stop();
+      }
 
-    // Tính level tiếp theo theo levelIndex
-    const currentIndex = scene.levelIndex ?? 0;
-    const nextIndex = currentIndex + 1;
+      // Tính level tiếp theo theo levelIndex
+      const currentIndex = scene.levelIndex ?? 0;
+      const nextIndex = currentIndex + 1;
 
-    if (nextIndex >= scene.levels.length) {
-      scene.scene.start("EndGameScene", {
-        score: scene.score,
-        total: scene.levels.length,
-      });
-    } else {
-      scene.scene.start("GameScene", {
-        levelIndex: nextIndex,
-        score: scene.score,
-      });
-    }
-  });
-}
+      if (nextIndex >= scene.levels.length) {
+        scene.scene.start("EndGameScene", {
+          score: scene.score,
+          total: scene.levels.length,
+        });
+      } else {
+        scene.scene.start("GameScene", {
+          levelIndex: nextIndex,
+          score: scene.score,
+        });
+      }
+    });
+  }
 
   // Luôn hiện nút, logic chặn Next nằm trong GameScene.isLevelComplete()
   setGameButtonsVisible(true);
@@ -329,11 +356,12 @@ async function initGame() {
     game = new Phaser.Game(config);
     setupHtmlButtons();
     setupPhaserResize(game);
-    setupRotateHint(); 
+    setupRotateHint();
   }
   setTimeout(() => {
     const canvas =
       document.querySelector<HTMLCanvasElement>("#game-container canvas");
+
     if (canvas) {
       canvas.style.margin = "0";
       canvas.style.padding = "0";

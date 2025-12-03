@@ -1,27 +1,17 @@
 import BaseScene from './BaseScene';
 
 export default class EndGameScene extends BaseScene {
-  private score = 0;
-  private total = 0;
-
   constructor() {
     super('EndGameScene');
   }
 
-  init(data: { score: number; total: number }) {
-    this.score = data.score;
-    this.total = data.total;
-  }
-
   create() {
-    
     const { width, height } = this.scale;
 
-     // Ẩn hai nút HTML viewport
+    // Ẩn hai nút HTML viewport ở màn kết thúc
     if ((window as any).setGameButtonsVisible) {
       (window as any).setGameButtonsVisible(false);
     }
-
 
     // === chỉnh bg dịch lên trên ===
     const bg = this.createFullScreenBg('bg_end');
@@ -50,6 +40,11 @@ export default class EndGameScene extends BaseScene {
       repeat: -1,
       ease: 'Sine.inOut',
     });
+    try {
+      this.sound.play('voice_end');
+    } catch (e) {
+      console.warn('[CompareGame] Không phát được voice_end:', e);
+    }
 
     // Hai nút hình: chơi lại & thoát
     const buttonsY = height - targetBtnSize * 2.2;

@@ -39,9 +39,6 @@ const UPGRADE_OFFSET: Record<Subject, { x: number; y: number }> = {
 type BalanceInitData = {
   leftCount: number;
   rightCount: number;
-  nextScene: string;
-  score: number;
-  levelIndex: number;
   subject: Subject;
 };
 
@@ -49,18 +46,11 @@ export default class BalanceScene extends Phaser.Scene {
   private leftCount = 0;
   private rightCount = 0;
 
-  private nextSceneKey = 'GameScene';
-  private score = 0;
-  private levelIndex = 0;
-
   private subject: Subject = 'BALLOON';
-
-  private feedbackText!: Phaser.GameObjects.Text;
 
   // layout
   private panelLeftX = 240;
   private actorY = 450;
-  private baseY = 340;
 
   private leftActorCenterX = 640;
   private rightActorCenterX = 1030;
@@ -80,15 +70,11 @@ export default class BalanceScene extends Phaser.Scene {
     this.leftCount = data.leftCount;
     this.rightCount = data.rightCount;
 
-    this.nextSceneKey = data.nextScene ?? 'GameScene';
-    this.score = data.score ?? 0;
-    this.levelIndex = data.levelIndex ?? 0;
-
     this.subject = data.subject ?? 'BALLOON';
   }
 
   create() {
-    const { width, height } = this.scale;
+    const { width } = this.scale;
 
     this.scene.bringToTop();
 
@@ -172,7 +158,6 @@ export default class BalanceScene extends Phaser.Scene {
     this.leftActorCenterX = actorPanelX + actorPanelWidth * 0.25;
     this.rightActorCenterX = actorPanelX + actorPanelWidth * 0.75;
 
-    this.baseY = actorPanelCenterY;
     this.actorY = actorPanelCenterY + 20;
 
     // ===== Nhân vật base & upgraded (cùng tâm) =====
@@ -376,14 +361,9 @@ export default class BalanceScene extends Phaser.Scene {
     });
 
     // bỏ text hướng dẫn kéo, chỉ giữ lại voice/âm thanh (nếu có)
-    (window as any).playVoiceLocked(this.sound, 'drag');
+    const dragKey =
+      this.subject === 'BALLOON' ? 'drag_balloon' : 'drag_flower';
+    (window as any).playVoiceLocked(this.sound, dragKey);
 
-  //   this.feedbackText = this.add
-  //     .text(width / 2, height - 50, feedbackBaseText, {
-  //       fontSize: '26px',
-  //       color: '#333',
-  //       fontFamily: 'Fredoka',
-  //     })
-  //     .setOrigin(0.5);
   }
 }

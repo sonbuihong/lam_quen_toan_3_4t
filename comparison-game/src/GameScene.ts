@@ -84,6 +84,21 @@ const FEEDBACK_FONT_SIZE = 22;
 // Khoảng cách feedback text từ đáy màn hình (pixel)
 const FEEDBACK_BOTTOM_MARGIN = 40;
 
+// Map voice key đọc câu hỏi theo subject + mode
+const QUESTION_VOICE_KEY: Record<
+  Subject,
+  { MORE: string; LESS: string }
+> = {
+  BALLOON: {
+    MORE: 'q_balloon_more',
+    LESS: 'q_balloon_less',
+  },
+  FLOWER: {
+    MORE: 'q_flower_more',
+    LESS: 'q_flower_less',
+  },
+};
+
 // ========================================================
 
 export default class GameScene extends Phaser.Scene {
@@ -350,6 +365,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     const subject = this.levelSubjects[this.levelIndex];
+    const level = this.levels[this.levelIndex];
 
     this.promptText.setText(this.levelQuestions[this.levelIndex]);
 
@@ -362,6 +378,16 @@ export default class GameScene extends Phaser.Scene {
     const scaleX = desiredWidth / baseBannerWidth;
     const scaleY = BANNER_SCALE * BOARD_SCALE;
     this.questionBanner.setScale(scaleX, scaleY);
+
+    // Phát voice đọc câu hỏi (luôn phát khi vào màn chính)
+    const voiceMap = QUESTION_VOICE_KEY[subject];
+    const voiceKey =
+      level.mode === 'LESS' ? voiceMap.LESS : voiceMap.MORE;
+    try {
+      this.sound.play(voiceKey);
+    } catch (e) {
+      console.warn('[CompareGame] Không phát được voice câu hỏi:', voiceKey, e);
+    }
 
     this.girlSprite.setTexture(GIRL_TEXTURE[subject]);
     this.boySprite.setTexture(BOY_TEXTURE[subject]);

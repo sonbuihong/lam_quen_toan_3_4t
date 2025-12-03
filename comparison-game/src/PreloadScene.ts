@@ -38,14 +38,27 @@ export default class PreloadScene extends Phaser.Scene {
         this.load.audio('sfx_wrong', 'assets/audio/error.mp3');
         this.load.audio('voice_need_finish', 'assets/audio/finish.mp3');
         this.load.audio('voice_complete', 'assets/audio/complete.wav');
-        // voice nhắc bé phải hoàn thành màn phụ trước khi bấm Next
-        this.load.audio('voice_need_finish', 'assets/audio/finish.mp3');
         this.load.audio('correct', 'assets/audio/sfx_correct.ogg');
         this.load.audio('wrong', 'assets/audio/sfx_wrong.ogg');
-        this.load.audio('drag', 'assets/audio/drag.mp3');
+        // voice hướng dẫn kéo cho bóng / hoa
+        this.load.audio('drag_balloon', 'assets/audio/keo_bong.mp3');
+        this.load.audio('drag_flower', 'assets/audio/keo_hoa.mp3');
+        // voice đọc câu hỏi banner (mỗi kiểu một file)
+        this.load.audio('q_balloon_more', 'assets/audio/more_b.mp3');
+        this.load.audio('q_balloon_less', 'assets/audio/less_b.mp3');
+        this.load.audio('q_flower_more', 'assets/audio/more_f.mp3');
+        this.load.audio('q_flower_less', 'assets/audio/less_f.mp3');
+        this.load.audio('voice_end', 'assets/audio/voice_end.ogg');
     }
 
     create() {
-        this.scene.start('GameScene');
+    // BGM nền dùng chung cho mọi scene
+    let bgm = this.sound.get('bgm_main');
+    if (!bgm) {
+    bgm = this.sound.add('bgm_main', { loop: true, volume: 0.4 });
     }
+    bgm.play();
+    this.scene.start('GameScene');
+    }
+
 }
