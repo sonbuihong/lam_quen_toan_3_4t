@@ -27,9 +27,11 @@ document.body.style.height = "100%";
 
 // ========== RANDOM BACKGROUND VIEWPORT ==========
 const INTRO_VIEWPORT_BGS = [
-  "assets/intro/bge1.webp",
-  "assets/intro/bge2.webp",
-  "assets/intro/bge3.webp",
+  "assets/bg/bg1.webp",
+  "assets/bg/bg2.webp",
+  "assets/bg/bg3.webp",
+  "assets/bg/bg4.webp",
+  "assets/bg/bg5.webp",
 ];
 
 const GAME_VIEWPORT_BGS = [
@@ -38,13 +40,14 @@ const GAME_VIEWPORT_BGS = [
   "assets/bg/bg3.webp",
   "assets/bg/bg4.webp",
   "assets/bg/bg5.webp",
-  "assets/bg/bg6.webp",
-  "assets/bg/bg7.webp",
 ];
 
 const END_VIEWPORT_BGS = [
   "assets/bg/bg1.webp",
   "assets/bg/bg2.webp",
+  "assets/bg/bg3.webp",
+  "assets/bg/bg4.webp",
+  "assets/bg/bg5.webp",
 ];
 
 // Cho phép chỉnh vị trí BG (center / top...)
@@ -95,14 +98,6 @@ function setGameButtonsVisible(visible: boolean) {
   if (nextBtn) nextBtn.style.display = display;
 }
 
-// Cho các Scene gọi qua window
-(Object.assign(window as any, {
-  setRandomIntroViewportBg,
-  setRandomGameViewportBg,
-  setRandomEndViewportBg,
-  setGameButtonsVisible,
-}));
-
 // ================== CSS CHO CONTAINER (TRONG SUỐT) ==================
 if (container instanceof HTMLDivElement) {
   container.style.position = "fixed";
@@ -122,6 +117,105 @@ let game: Phaser.Game | null = null;
 // ================== OVERLAY NHẮC XOAY NGANG ==================
 let rotateOverlay: HTMLDivElement | null = null;
 
+// ========== HÀM CHỐNG SPAM / CHỒNG VOICE ==========
+let currentVoice: Phaser.Sound.BaseSound | null = null;
+let currentVoiceKey: string | null = null;
+let isRotateOverlayActive = false; // trạng thái overlay xoay ngang
+
+// Lưu lại BGM loop + question đang phát khi bước vào overlay dọc
+let pausedLoopKeys: string[] = [];
+let pendingQuestionKey: string | null = null;
+
+function getVoicePriority(key: string): number {
+  // Ưu tiên thấp: drag / câu hỏi
+  if (key.startsWith("drag_") || key.startsWith("q_")) return 1;
+
+  // Nhắc nhở
+  if (key === "voice_need_finish") return 2;
+
+  // Âm đúng / sai – trung bình
+  if (key === "sfx_correct" || key === "sfx_wrong") return 3;
+
+  // Hoàn thành / intro / end / xoay – cao nhất
+  if (
+    key === "voice_complete" ||
+    key === "voice_intro" ||
+    key === "voice_end" ||
+    key === "voice_rotate"
+  ) {
+    return 4;
+  }
+
+  // Mặc định
+  return 1;
+}
+
+export function playVoiceLocked(
+  sound: Phaser.Sound.BaseSoundManager,
+  key: string
+): void {
+  if (isRotateOverlayActive && key !== "voice_rotate") {
+    console.warn(`[Match123] Đang overlay xoay ngang, chỉ phát voice_rotate!`);
+    return;
+  }
+
+  const newPri = getVoicePriority(key);
+  const curPri = currentVoiceKey ? getVoicePriority(currentVoiceKey) : 0;
+
+  // Nếu đang phát 1 voice:
+  if (currentVoice && currentVoice.isPlaying) {
+    // Nếu cùng 1 key (kể cả sfx_wrong) -> bỏ qua, không spam
+    if (currentVoiceKey === key) {
+      return;
+    }
+
+    // Nếu voice hiện tại có priority cao hơn hoặc bằng thì giữ nguyên, bỏ qua voice mới
+    if (curPri >= newPri) {
+      return;
+    }
+
+    // Nếu voice mới ưu tiên cao hơn thì dừng voice cũ trước
+    currentVoice.stop();
+    currentVoice = null;
+    currentVoiceKey = null;
+  }
+
+  let instance = sound.get(key) as Phaser.Sound.BaseSound | null;
+  if (!instance) {
+    try {
+      instance = sound.add(key);
+      if (!instance) {
+        console.warn(
+          `[Match123] Không phát được audio key="${key}": Asset chưa được preload hoặc chưa có trong cache.`
+        );
+        return;
+      }
+    } catch (e) {
+      console.warn(`[Match123] Không phát được audio key="${key}":`, e);
+      return;
+    }
+  }
+
+  currentVoice = instance;
+  currentVoiceKey = key;
+  instance.once("complete", () => {
+    if (currentVoice === instance) {
+      currentVoice = null;
+      currentVoiceKey = null;
+    }
+  });
+  instance.play();
+}
+
+// Cố gắng resume AudioContext khi overlay bật/tắt
+function resumeSoundContext(gameScene: GameScene) {
+  const sm = gameScene.sound as any;
+  const ctx: AudioContext | undefined = sm.context || sm.audioContext;
+  if (ctx && ctx.state === "suspended" && typeof ctx.resume === "function") {
+    ctx.resume();
+  }
+}
+
 function ensureRotateOverlay() {
   if (rotateOverlay) return;
 
@@ -138,14 +232,14 @@ function ensureRotateOverlay() {
   rotateOverlay.style.padding = "16px";
   rotateOverlay.style.boxSizing = "border-box";
 
-  // Nội dung thông báo
   const box = document.createElement("div");
   box.style.background = "white";
   box.style.borderRadius = "16px";
   box.style.padding = "16px 20px";
   box.style.maxWidth = "320px";
   box.style.margin = "0 auto";
-  box.style.fontFamily = '"Fredoka", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  box.style.fontFamily =
+    '"Fredoka", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   box.style.boxShadow = "0 8px 24px rgba(0,0,0,0.25)";
 
   const title = document.createElement("div");
@@ -155,43 +249,130 @@ function ensureRotateOverlay() {
   title.style.marginBottom = "8px";
   title.style.color = "#222";
 
-  // const desc = document.createElement("div");
-  // //desc.textContent = "Để chơi game rõ và dễ thao tác hơn, vui lòng xoay ngang thiết bị.";
-  // desc.style.fontSize = "14px";
-  // desc.style.lineHeight = "1.4";
-  // desc.style.color = "#444";
   box.appendChild(title);
-  // box.appendChild(desc);
   rotateOverlay.appendChild(box);
-
   document.body.appendChild(rotateOverlay);
 }
 
 function updateRotateHint() {
   ensureRotateOverlay();
-
   if (!rotateOverlay) return;
 
   const w = window.innerWidth;
   const h = window.innerHeight;
-
-  // Điều kiện hiển thị:
-  // - Thiết bị đang ở portrait (đứng)
-  // - Và chiều rộng nhỏ hơn 768px (chủ yếu mobile / tablet nhỏ)
   const shouldShow = h > w && w < 768;
 
-  rotateOverlay.style.display = shouldShow ? "flex" : "none";
-}
-function setupRotateHint() {
-  // Tạo overlay nếu chưa có
-  ensureRotateOverlay();
-  // Cập nhật trạng thái ngay lần đầu
-  updateRotateHint();
+  const overlayWasActive = isRotateOverlayActive;
+  isRotateOverlayActive = shouldShow;
 
-  // Lắng nghe thay đổi kích thước / xoay
+  const overlayTurnedOn = !overlayWasActive && shouldShow;
+  const overlayTurnedOff = overlayWasActive && !shouldShow;
+
+  rotateOverlay.style.display = shouldShow ? "flex" : "none";
+
+  const gameScene = game?.scene?.getScene("GameScene") as GameScene | undefined;
+  if (!gameScene || !gameScene.sound) {
+    return;
+  }
+
+  const soundManager = gameScene.sound as any;
+  const sounds = soundManager.sounds as Phaser.Sound.BaseSound[] | undefined;
+
+  // Khi vừa bước vào màn hình dọc (overlay bật)
+  if (overlayTurnedOn && Array.isArray(sounds)) {
+    resumeSoundContext(gameScene);
+
+    pausedLoopKeys = [];
+    pendingQuestionKey = null;
+
+    sounds.forEach((snd: Phaser.Sound.BaseSound) => {
+      if (
+        snd &&
+        typeof snd.key === "string" &&
+        snd.key !== "voice_rotate" &&
+        snd.isPlaying &&
+        typeof snd.stop === "function"
+      ) {
+        if ((snd as any).loop) {
+          pausedLoopKeys.push(snd.key);
+        }
+        if (snd.key.startsWith("q_")) {
+          pendingQuestionKey = snd.key;
+        }
+        snd.stop();
+      }
+    });
+  }
+
+  // Khi overlay bật lên lần đầu -> phát voice_rotate (nếu có)
+  if (overlayTurnedOn) {
+    const tryPlayVoiceRotate = () => {
+      // gameScene có thể bị stop/start lại, nên lấy lại mỗi lần
+      const scene = game?.scene?.getScene("GameScene") as
+        | GameScene
+        | undefined;
+      if (!scene || !scene.sound) return;
+
+      const isActive = scene.scene.isActive();
+      const hasVoiceRotate =
+        !!(scene.cache as any)?.audio?.exists?.("voice_rotate") ||
+        !!scene.sound.get("voice_rotate");
+      if (isActive && hasVoiceRotate) {
+        playVoiceLocked(scene.sound, "voice_rotate");
+      } else {
+        // Nếu chưa sẵn sàng (scene chưa active hoặc sound chưa load) thì thử lại sau
+        setTimeout(tryPlayVoiceRotate, 300);
+      }
+    };
+    tryPlayVoiceRotate();
+  }
+
+  // Khi overlay tắt -> dừng voice_rotate, phát lại BGM + question nếu có
+  if (overlayTurnedOff) {
+    resumeSoundContext(gameScene);
+
+    const rotateSound = gameScene.sound.get(
+      "voice_rotate"
+    ) as Phaser.Sound.BaseSound | null;
+    if (rotateSound && rotateSound.isPlaying) {
+      rotateSound.stop();
+    }
+    if (currentVoice === rotateSound) {
+      currentVoice = null;
+      currentVoiceKey = null;
+    }
+
+    pausedLoopKeys.forEach((key) => {
+      const bg = gameScene.sound.get(key) as Phaser.Sound.BaseSound | null;
+      if (bg) {
+        (bg as any).loop = true;
+        bg.play();
+      }
+    });
+    pausedLoopKeys = [];
+
+    if (pendingQuestionKey) {
+      playVoiceLocked(gameScene.sound, pendingQuestionKey);
+      pendingQuestionKey = null;
+    }
+  }
+}
+
+function setupRotateHint() {
+  ensureRotateOverlay();
+  updateRotateHint();
   window.addEventListener("resize", updateRotateHint);
   window.addEventListener("orientationchange", updateRotateHint as any);
 }
+
+// Cho các Scene gọi qua window
+(Object.assign(window as any, {
+  setRandomIntroViewportBg,
+  setRandomGameViewportBg,
+  setRandomEndViewportBg,
+  setGameButtonsVisible,
+  playVoiceLocked,
+}));
 
 // ================== CẤU HÌNH PHASER ==================
 const config: Phaser.Types.Core.GameConfig = {
@@ -231,7 +412,7 @@ function setupHtmlButtons() {
       if (!scene) return;
 
       if (!scene.isLevelComplete()) {
-        scene.sound.play("voice_need_finish");
+        playVoiceLocked(scene.sound, "voice_need_finish");
         return;
       }
 
