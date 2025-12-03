@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import type { LessonPackage, LessonItem } from '../types/lesson';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 import { domBackgroundManager } from '../domBackground';
+import { showGameButtons } from '../../main';
 
 type DifficultyLevel = 1 | 2 | 3;
 
@@ -29,7 +30,7 @@ export class LessonScene extends Phaser.Scene {
     private speakerIcon!: Phaser.GameObjects.Image;
     private progressText!: Phaser.GameObjects.Text;
     private questionBar?: Phaser.GameObjects.Image;
-    private questionBarBaseLength = 0;
+    // private questionBarBaseLength = 0;
 
     private optionImages: Phaser.GameObjects.Image[] = [];
     private optionPanels: Phaser.GameObjects.Image[] = [];
@@ -62,6 +63,9 @@ export class LessonScene extends Phaser.Scene {
     }
 
     create() {
+        // Cho phép html-button gọi vào lessonScene qua global
+        (window as any).lessonScene = this;
+
         domBackgroundManager.setBackgroundByKey(this.lesson.concept);
 
         // ===== HEADER =====
@@ -177,6 +181,7 @@ export class LessonScene extends Phaser.Scene {
                 repeat: -1,
             });
         }
+        showGameButtons();
     }
 
     // ===== Tutorial overlay =====
@@ -365,7 +370,7 @@ export class LessonScene extends Phaser.Scene {
         const alignByHeight = this.lesson.concept === 'HEIGHT';
 
         if (count === 2) {
-            const spacing = 460;
+            const spacing = 440;
             const startX = GAME_WIDTH / 2 - ((count - 1) * spacing) / 2 + 60;
             const panelY = centerY + 20;
             const panelW = 420;
@@ -381,6 +386,8 @@ export class LessonScene extends Phaser.Scene {
                     .setOrigin(0.5)
                     .setDisplaySize(panelW, panelH);
 
+                panel.setInteractive({ useHandCursor: true });
+
                 const img = this.add.image(x, panelY, opt.image).setOrigin(0.5);
                 img.setScale(scale);
                 img.setInteractive({ useHandCursor: true });
@@ -390,15 +397,25 @@ export class LessonScene extends Phaser.Scene {
                     this.alignImageBottomInPanel(img, panelY, panelH, 40);
                 }
 
-                img.on('pointerdown', () =>
-                    this.onSelect(item, opt.id, img, panel)
-                );
+                const handleClick = () => {
+                    this.onSelect(item, opt.id, img, panel);
+                };
+
+                // 👇 Gán cùng handler cho cả panel và img
+                panel.on('pointerdown', handleClick);
+                img.on('pointerdown', handleClick);
+
+                panel.setData('panelKeys', {
+                    base: 'panel_bg',
+                    correct: 'panel_bg_correct',
+                    wrong: 'panel_bg_wrong',
+                });
 
                 this.optionImages.push(img);
                 this.optionPanels.push(panel);
             });
         } else if (count === 3) {
-            const spacing = 320;
+            const spacing = 310;
             const startX = GAME_WIDTH / 2 - spacing + 80;
             const panelY = centerY + 10;
             const panelW = 300;
@@ -414,6 +431,8 @@ export class LessonScene extends Phaser.Scene {
                     .setOrigin(0.5)
                     .setDisplaySize(panelW, panelH);
 
+                panel.setInteractive({ useHandCursor: true });
+
                 const img = this.add.image(x, panelY, opt.image).setOrigin(0.5);
                 img.setScale(scale);
                 img.setInteractive({ useHandCursor: true });
@@ -422,16 +441,26 @@ export class LessonScene extends Phaser.Scene {
                     this.alignImageBottomInPanel(img, panelY, panelH, 35);
                 }
 
-                img.on('pointerdown', () =>
-                    this.onSelect(item, opt.id, img, panel)
-                );
+                const handleClick = () => {
+                    this.onSelect(item, opt.id, img, panel);
+                };
+
+                // 👇 Gán cùng handler cho cả panel và img
+                panel.on('pointerdown', handleClick);
+                img.on('pointerdown', handleClick);
+
+                panel.setData('panelKeys', {
+                    base: 'panel_bg',
+                    correct: 'panel_bg_correct',
+                    wrong: 'panel_bg_wrong',
+                });
 
                 this.optionImages.push(img);
                 this.optionPanels.push(panel);
             });
         } else if (count === 4) {
-            const colSpacing = 420;
-            const rowSpacing = 300;
+            const colSpacing = 430;
+            const rowSpacing = 290;
 
             const centerX = GAME_WIDTH / 2 + 60;
             const topY = centerY - rowSpacing / 2;
@@ -444,7 +473,7 @@ export class LessonScene extends Phaser.Scene {
                 { x: centerX + colSpacing / 2, y: bottomY },
             ];
 
-            const panelW = 380;
+            const panelW = 420;
             const panelH = 280;
 
             const scale = this.computeItemScale(opts, panelW, panelH, 40);
@@ -453,9 +482,11 @@ export class LessonScene extends Phaser.Scene {
                 const pos = positions[idx] ?? positions[positions.length - 1];
 
                 const panel = this.add
-                    .image(pos.x, pos.y, 'panel_bg')
+                    .image(pos.x, pos.y, 'panel_bg_1')
                     .setOrigin(0.5)
                     .setDisplaySize(panelW, panelH);
+
+                panel.setInteractive({ useHandCursor: true });
 
                 const img = this.add
                     .image(pos.x, pos.y, opt.image)
@@ -467,10 +498,19 @@ export class LessonScene extends Phaser.Scene {
                     // căn chân theo từng hàng riêng (top/bottom), panelH chung
                     this.alignImageBottomInPanel(img, pos.y, panelH, 30);
                 }
+                const handleClick = () => {
+                    this.onSelect(item, opt.id, img, panel);
+                };
 
-                img.on('pointerdown', () =>
-                    this.onSelect(item, opt.id, img, panel)
-                );
+                // 👇 Gán cùng handler cho cả panel và img
+                panel.on('pointerdown', handleClick);
+                img.on('pointerdown', handleClick);
+
+                panel.setData('panelKeys', {
+                    base: 'panel_bg_1',
+                    correct: 'panel_bg_1_correct',
+                    wrong: 'panel_bg_1_wrong',
+                });
 
                 this.optionImages.push(img);
                 this.optionPanels.push(panel);
@@ -493,6 +533,8 @@ export class LessonScene extends Phaser.Scene {
                     .setOrigin(0.5)
                     .setDisplaySize(panelW, panelH);
 
+                panel.setInteractive({ useHandCursor: true });
+
                 const img = this.add.image(x, panelY, opt.image).setOrigin(0.5);
                 img.setScale(scale);
                 img.setInteractive({ useHandCursor: true });
@@ -501,9 +543,19 @@ export class LessonScene extends Phaser.Scene {
                     this.alignImageBottomInPanel(img, panelY, panelH, 35);
                 }
 
-                img.on('pointerdown', () =>
-                    this.onSelect(item, opt.id, img, panel)
-                );
+                const handleClick = () => {
+                    this.onSelect(item, opt.id, img, panel);
+                };
+
+                // 👇 Gán cùng handler cho cả panel và img
+                panel.on('pointerdown', handleClick);
+                img.on('pointerdown', handleClick);
+
+                panel.setData('panelKeys', {
+                    base: 'panel_bg',
+                    correct: 'panel_bg_correct',
+                    wrong: 'panel_bg_wrong',
+                });
 
                 this.optionImages.push(img);
                 this.optionPanels.push(panel);
@@ -524,6 +576,15 @@ export class LessonScene extends Phaser.Scene {
 
         const isCorrect = optId === item.correctOptionId;
 
+        // Lấy bộ key của panel (base/correct/wrong)
+        const keys = panel.getData('panelKeys') as
+            | { base: string; correct: string; wrong: string }
+            | undefined;
+
+        const baseKey = keys?.base ?? 'panel_bg';
+        const correctKey = keys?.correct ?? 'panel_bg_correct';
+        const wrongKey = keys?.wrong ?? 'panel_bg_wrong';
+
         // log
         this.answerLogs.push({
             lessonId: this.lesson.lessonId,
@@ -538,9 +599,9 @@ export class LessonScene extends Phaser.Scene {
         if (isCorrect) {
             this.score++;
 
-            // Panel đúng giống CompareScene: đổi texture + zoom nhẹ
-            if (this.textures.exists('panel_bg_correct')) {
-                panel.setTexture('panel_bg_correct');
+            // Panel đúng
+            if (this.textures.exists(correctKey)) {
+                panel.setTexture(correctKey);
             }
 
             const targets: Phaser.GameObjects.GameObject[] = [panel, img];
@@ -553,13 +614,13 @@ export class LessonScene extends Phaser.Scene {
                 duration: 150,
                 repeat: 1,
                 onComplete: () => {
-                    this.time.delayedCall(300, () => this.nextQuestion());
+                    this.time.delayedCall(2000, () => this.nextQuestion());
                 },
             });
         } else {
-            // Panel sai: đổi texture + rung, rồi đổi lại panel_bg
-            if (this.textures.exists('panel_bg_wrong')) {
-                panel.setTexture('panel_bg_wrong');
+            // Panel sai
+            if (this.textures.exists(wrongKey)) {
+                panel.setTexture(wrongKey);
             }
 
             const targets: Phaser.GameObjects.GameObject[] = [panel, img];
@@ -571,8 +632,8 @@ export class LessonScene extends Phaser.Scene {
                 duration: 70,
                 repeat: 3,
                 onComplete: () => {
-                    // trả panel về bình thường
-                    panel.setTexture('panel_bg');
+                    // trả panel về base
+                    panel.setTexture(baseKey);
                     this.lockInput = false;
                 },
             });
@@ -593,5 +654,54 @@ export class LessonScene extends Phaser.Scene {
             total: this.lesson.items.length,
             difficulty: this.currentDifficulty,
         });
+    }
+
+    public restartLevel() {
+        // reset toàn bài hiện tại về từ đầu
+        if (!this.lesson) return;
+
+        // dừng âm thanh đang phát nếu có
+        this.sound.stopAll();
+
+        // reset state
+        this.index = 0;
+        this.score = 0;
+        this.lockInput = false;
+        this.answerLogs = [];
+
+        // clear option cũ trên màn
+        this.optionImages.forEach((img) => img.destroy());
+        this.optionPanels.forEach((panel) => panel.destroy());
+        this.optionImages = [];
+        this.optionPanels = [];
+
+        // vẽ lại câu đầu tiên
+        this.showQuestion();
+    }
+
+    public goToNextLevel() {
+        // bỏ qua câu hiện tại, sang câu tiếp theo
+        if (!this.lesson) return;
+
+        // nếu bạn muốn không cho spam khi đang tween, giữ lock này
+        if (this.lockInput) return;
+
+        this.lockInput = true;
+
+        // optional: log "skip" nếu bạn muốn tracking
+        const item = this.lesson.items[this.index];
+        if (item) {
+            this.answerLogs.push({
+                lessonId: this.lesson.lessonId,
+                itemId: item.id,
+                optionId: 'SKIP',
+                isCorrect: false,
+                index: this.index,
+                difficulty: item.difficulty,
+                timestamp: Date.now(),
+            });
+        }
+
+        this.nextQuestion();
     }
 }

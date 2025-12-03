@@ -44,22 +44,22 @@
         },
         {
             "id": "q3",
-            "promptText": "Chọn cái cây cao hơn.",
+            "promptText": "CHÚ HƯƠU NÀO CAO NHẤT?",
             "options": [
                 {
                     "id": "opt1",
-                    "image": "assets/height/tree_short.png",
+                    "image": "assets/height/giraffe_short.png",
                     "value": 1
                 },
                 {
                     "id": "opt2",
-                    "image": "assets/height/tree_tall.png",
+                    "image": "assets/height/giraffe_high.png",
                     "value": 3
                 },
                 {
                     "id": "opt3",
-                    "image": "assets/height/tree_tall.png",
-                    "value": 3
+                    "image": "assets/height/giraffe_fit.png",
+                    "value": 2
                 }
             ],
             "correctOptionId": "opt2",
@@ -67,31 +67,49 @@
         },
         {
             "id": "q4",
-            "promptText": "Chọn tòa nhà cao nhất.",
+            "promptText": "CHÚ HƯƠU NÀO CAO NHẤT?",
             "options": [
                 {
                     "id": "opt1",
-                    "image": "assets/height/building_low.png",
+                    "image": "assets/height/giraffe_short.png",
                     "value": 1
                 },
                 {
                     "id": "opt2",
-                    "image": "assets/height/building_low.png",
+                    "image": "assets/height/giraffe_fit.png",
                     "value": 2
                 },
                 {
                     "id": "opt3",
-                    "image": "assets/height/building_high.png",
+                    "image": "assets/height/giraffe_high.png",
                     "value": 4
                 },
                 {
                     "id": "opt4",
-                    "image": "assets/height/building_high.png",
+                    "image": "assets/height/giraffe_fit_1.png",
                     "value": 3
                 }
             ],
             "correctOptionId": "opt3",
             "difficulty": 3
+        },
+        {
+            "id": "q5",
+            "promptText": "CHÚ HƯƠU NÀO THẤP HƠN?",
+            "options": [
+                {
+                    "id": "opt1",
+                    "image": "assets/height/giraffe_fit.png",
+                    "value": 2
+                },
+                {
+                    "id": "opt2",
+                    "image": "assets/height/giraffe_fit_1.png",
+                    "value": 3
+                }
+            ],
+            "correctOptionId": "opt1",
+            "difficulty": 2
         }
     ]
 }

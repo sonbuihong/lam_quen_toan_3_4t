@@ -2,39 +2,40 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 import type { LessonConcept } from '../types/lesson';
 import { domBackgroundManager } from '../domBackground';
+import { hideGameButtons } from '../../main';
 
 type DifficultyLevel = 1 | 2 | 3;
 type LessonOption = {
     lessonId: string;
     concept: LessonConcept;
+    imageKey: string; // 👈 thêm
     title: string;
-    subtitle: string;
 };
 
 const LESSON_OPTIONS: LessonOption[] = [
     {
         lessonId: 'height_basic_01',
         concept: 'HEIGHT',
-        title: 'Cao / Thấp',
-        subtitle: 'So sánh chiều cao',
+        imageKey: 'card_height', // ảnh card Cao/Thấp
+        title: 'Cao/Thấp',
     },
     {
         lessonId: 'size_basic_01',
         concept: 'SIZE',
-        title: 'To / Nhỏ / Bằng nhau',
-        subtitle: 'So sánh kích thước',
+        imageKey: 'card_size', // ảnh card To/Nhỏ/Bằng nhau
+        title: 'To/Nhỏ/Bằng nhau',
     },
     {
         lessonId: 'length_basic_01',
         concept: 'LENGTH',
-        title: 'Dài / Ngắn',
-        subtitle: 'So sánh độ dài',
+        imageKey: 'card_length', // ảnh card Dài/Ngắn
+        title: 'Dài/Ngắn',
     },
     {
         lessonId: 'width_basic_01',
         concept: 'WIDTH',
-        title: 'Rộng / Hẹp',
-        subtitle: 'So sánh độ rộng',
+        imageKey: 'card_width', // ảnh card Rộng/Hẹp
+        title: 'Rộng/Hẹp',
     },
 ];
 
@@ -44,51 +45,55 @@ export class LessonSelectScene extends Phaser.Scene {
     }
 
     preload() {
-        // panel & icon cần dùng trong menu
-        if (!this.textures.exists('panel_bg')) {
-            this.load.image('panel_bg', 'assets/ui/panel_bg.webp');
+        if (!this.textures.exists('menu_panel')) {
+            this.load.image('menu_panel', 'assets/ui/menu_panel.webp'); // bảng xanh to
         }
 
-        if (!this.textures.exists('speaker-icon')) {
-            this.load.image('speaker-icon', 'assets/ui/speaker.png');
+        // 4 card nhỏ bên trong
+        if (!this.textures.exists('card_height')) {
+            this.load.image('card_height', 'assets/ui/card_height.webp');
+        }
+        if (!this.textures.exists('card_size')) {
+            this.load.image('card_size', 'assets/ui/card_size.webp');
+        }
+        if (!this.textures.exists('card_length')) {
+            this.load.image('card_length', 'assets/ui/card_length.webp');
+        }
+        if (!this.textures.exists('card_width')) {
+            this.load.image('card_width', 'assets/ui/card_width.webp');
         }
     }
 
     create() {
         domBackgroundManager.setBackgroundByKey('DEFAULT');
-        // Tiêu đề
-        this.add
-            .text(GAME_WIDTH / 2, 80, 'Chọn bài so sánh', {
-                fontSize: '32px',
-                color: '#000',
-            })
+
+        const centerX = GAME_WIDTH / 2;
+        const centerY = GAME_HEIGHT / 2;
+
+        // ===== BẢNG TO =====
+        const board = this.add
+            .image(centerX, centerY, 'menu_panel')
             .setOrigin(0.5);
 
-        this.add
-            .text(
-                GAME_WIDTH / 2,
-                120,
-                'Con muốn luyện Cao/Thấp, To/Nhỏ, Dài/Ngắn hay Rộng/Hẹp?',
-                {
-                    fontSize: '18px',
-                    color: '#555',
-                    align: 'center',
-                    wordWrap: { width: GAME_WIDTH - 120 },
-                }
-            )
-            .setOrigin(0.5);
+        // scale để bảng chiếm khoảng 80% chiều ngang
+        const targetWidth = GAME_WIDTH * 0.65;
+        const ratio = board.height / board.width;
+        board.setDisplaySize(targetWidth, targetWidth * ratio);
+        board.setDepth(0);
 
-        this.renderLessonOptions();
+        // Vẽ 4 card bên trong bảng
+        this.renderLessonOptions(board);
+
+        hideGameButtons();
     }
 
-    private renderLessonOptions() {
-        const centerX = GAME_WIDTH / 2;
-        const centerY = GAME_HEIGHT / 2 + 20;
+    private renderLessonOptions(board: Phaser.GameObjects.Image) {
+        const centerX = board.x;
+        const centerY = board.y + 40; // lệch xuống chút cho giống hình
 
-        const colSpacing = 260;
-        const rowSpacing = 180;
+        const colSpacing = board.displayWidth * 0.34; // chỉnh cho khớp layout
+        const rowSpacing = board.displayHeight * 0.305;
 
-        // 4 ô: 2x2
         const positions = [
             { x: centerX - colSpacing / 2, y: centerY - rowSpacing / 2 },
             { x: centerX + colSpacing / 2, y: centerY - rowSpacing / 2 },
@@ -99,33 +104,31 @@ export class LessonSelectScene extends Phaser.Scene {
         LESSON_OPTIONS.forEach((opt, idx) => {
             const pos = positions[idx] ?? positions[positions.length - 1];
 
-            // Panel nền
-            const panel = this.add
-                .image(pos.x, pos.y, 'panel_bg')
+            // ===== CARD ẢNH (có sẵn text + icon) =====
+            const card = this.add
+                .image(pos.x, pos.y, opt.imageKey)
                 .setOrigin(0.5)
-                .setDisplaySize(260, 180);
+                .setInteractive({ useHandCursor: true });
 
-            // Vùng click to hơn tí cho dễ bấm
-            panel.setInteractive({ useHandCursor: true });
+            // scale các card về cùng kích thước tương đối (nếu cần)
+            const targetCardWidth = board.displayWidth * 0.32; // ~1/3 bảng
+            const scale = targetCardWidth / card.width;
+            card.setScale(scale);
 
-            // Text tiêu đề
-            const titleText = this.add
-                .text(pos.x, pos.y - 25, opt.title, {
-                    fontSize: '22px',
-                    color: '#000',
-                })
-                .setOrigin(0.5);
+            card.scene.tweens.add({
+                targets: card,
+                scaleX: scale * 1.02,
+                scaleY: scale * 1.02,
+                yoyo: true, // lặp lặp
+                ease: 'Sine.easeInOut',
+                duration: 800,
+                repeat: -1, // lặp vô hạn
+            });
 
-            // Text mô tả
-            const subText = this.add
-                .text(pos.x, pos.y + 20, opt.subtitle, {
-                    fontSize: '16px',
-                    color: '#555',
-                })
-                .setOrigin(0.5);
+            // card.setDepth(1); // trên bảng
 
-            // Click: start PreloadScene với lessonId
-            panel.on('pointerdown', () => {
+            // click card: mở popup chọn độ khó (logic cũ)
+            card.on('pointerdown', () => {
                 this.openDifficultyPopup(opt);
             });
         });
@@ -151,10 +154,36 @@ export class LessonSelectScene extends Phaser.Scene {
         const centerY = this.scale.height / 2;
 
         // Khung popup
-        const popupBg = this.add
-            .rectangle(centerX, centerY, 520, 320, 0xffffff, 1)
-            .setStrokeStyle(2, 0xcccccc)
-            .setOrigin(0.5);
+        const popupWidth = 520;
+        const popupHeight = 320;
+        const cornerRadius = 24; // độ bo góc
+
+        // ====== NỀN POPUP BO GÓC ======
+        const popupBg = this.add.graphics();
+
+        // viền
+        popupBg.lineStyle(2, 0xcccccc, 1);
+        // màu nền
+        popupBg.fillStyle(0xffffff, 1);
+
+        // vẽ từ tâm (0,0) để dễ canh giữa
+        popupBg.fillRoundedRect(
+            -popupWidth / 2,
+            -popupHeight / 2,
+            popupWidth,
+            popupHeight,
+            cornerRadius
+        );
+        popupBg.strokeRoundedRect(
+            -popupWidth / 2,
+            -popupHeight / 2,
+            popupWidth,
+            popupHeight,
+            cornerRadius
+        );
+
+        // đặt vị trí ở giữa màn
+        popupBg.setPosition(centerX, centerY);
 
         const titleText = this.add
             .text(centerX, centerY - 110, `Chọn độ khó\n${title}`, {
