@@ -74,24 +74,31 @@ const HAND_FINGER_ORIGIN_X = 0.8;
 const HAND_FINGER_ORIGIN_Y = 0.2;
 
 const ALL_ASSETS_12 = [
-  "flower",
-  "bear",
-  "ball",
-  "marble",
-  "drum",
-  "rabbit",
   "clock",
-  "red",
-  "yellow",
-  "babie",
+  "bowl",
+  "spoon",
+  "lamp",
 ];
 
 const LABEL_BY_ASSET: Record<string, string> = {};
 
+// Các mẫu số lượng cho 4 cột (bên trái là số, bên phải là đồ vật).
+// Đã thêm cả số 3 để có 3 nhóm đồ vật.
 const ONE_TWO_PATTERNS = [
-  [1, 1, 1, 2],
-  [1, 1, 2, 2],
-  [1, 2, 2, 2],
+  // một đồ vật
+  [1, 1, 2, 3],
+  [1, 2, 1, 3],
+  [1, 2, 3, 1],
+
+  // hai đồ vật
+  [2, 1, 2, 3],
+  [2, 2, 1, 3],
+  [2, 3, 2, 1],
+
+  // ba đồ vật
+  [3, 1, 2, 3],
+  [3, 2, 3, 1],
+  [3, 3, 1, 2],
 ];
 
 // ========== UTILS ==========
@@ -105,33 +112,34 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function buildOneTwoLevels(): LevelConfig[] {
-  const shuffledAssets = shuffle(ALL_ASSETS_12);
-
-  const level1 = shuffledAssets.slice(0, 4);
-  const level2 = shuffledAssets.slice(4, 8);
-  const level3 = shuffledAssets.slice(8, 10).concat(shuffledAssets.slice(0, 2));
-
+  // Dùng cùng 4 asset cho nhiều màn, mỗi màn đổi pattern số và trộn thứ tự
   const bgKeys = ["bg1", "bg2", "bg3"];
-  const charKeys = ["char1", "char2", "char1"];
+  const charKeys = ["char", "char", "char"];
 
-  const groups = [level1, level2, level3];
+  const levels: LevelConfig[] = [];
 
-  return groups.map((assets, i) => {
+  // Đổi số màn tại đây: 2 hoặc 3
+  const numLevels = 3;
+
+  for (let i = 0; i < numLevels; i++) {
+    const shuffledAssets = shuffle(ALL_ASSETS_12);
     const pattern =
       ONE_TWO_PATTERNS[Math.floor(Math.random() * ONE_TWO_PATTERNS.length)];
 
-    const items: LevelItem[] = assets.map((key, idx) => ({
+    const items: LevelItem[] = shuffledAssets.map((key, idx) => ({
       number: pattern[idx],
       asset: key,
       label: LABEL_BY_ASSET[key] || "",
     }));
 
-    return {
+    levels.push({
       items,
-      background: bgKeys[i],
-      character: charKeys[i],
-    };
-  });
+      background: bgKeys[i % bgKeys.length],
+      character: charKeys[i % charKeys.length],
+    });
+  }
+
+  return levels;
 }
 
 // ========== MAIN CLASS ==========
@@ -156,8 +164,6 @@ export default class GameScene extends Phaser.Scene {
   nextBtn?: Phaser.GameObjects.GameObject;
 
   bgm?: Phaser.Sound.BaseSound;
-  private sfxWrong?: Phaser.Sound.BaseSound;
-  private sfxCorrect?: Phaser.Sound.BaseSound;
 
   constructor() {
     super({ key: "GameScene" });
@@ -309,10 +315,6 @@ export default class GameScene extends Phaser.Scene {
       bgm.play();
     }
     this.bgm = bgm;
-
-    // Khởi tạo hiệu ứng âm thanh để tránh lặp / chồng khi spam click
-    this.sfxWrong = this.sound.add("sfx_wrong");
-    this.sfxCorrect = this.sound.add("sfx_correct");
 
     const level = this.levels[this.level];
 
@@ -621,10 +623,16 @@ export default class GameScene extends Phaser.Scene {
         tmp.destroy();
 
         const count = item.number;
-        const gapX = -10;
+        const gapX = -5;
 
-        const maxIconHeight = cardH * (count === 1 ? 0.98 : 0.95);
+        // Giới hạn chiều cao icon để không tràn thẻ
+        const maxIconHeight = cardH * (count === 1 ? 0.8 : 0.7);
         let iconScale = maxIconHeight / aH;
+
+        // Không cho phóng to hơn kích thước gốc
+        if (iconScale > 1) {
+          iconScale = 1;
+        }
 
         const iconWidthScaled = aW * iconScale;
         const totalWidth = count * iconWidthScaled + (count - 1) * Math.abs(gapX);
@@ -794,8 +802,13 @@ export default class GameScene extends Phaser.Scene {
         const objN = objCard.customData!.number;
 
         if (n !== objN && !this.matches[startIndex]) {
-          if (this.sfxWrong && !this.sfxWrong.isPlaying) {
-            this.sfxWrong.play();
+          const playLocked = (window as any).playVoiceLocked as
+            | ((s: Phaser.Sound.BaseSoundManager, k: string) => void)
+            | undefined;
+          if (playLocked) {
+            playLocked(this.sound, "sfx_wrong");
+          } else {
+            this.sound.play("sfx_wrong");
           }
         }
 
@@ -803,8 +816,13 @@ export default class GameScene extends Phaser.Scene {
           matched = true;
           this.matches[startIndex] = true;
 
-          if (this.sfxCorrect && !this.sfxCorrect.isPlaying) {
-            this.sfxCorrect.play();
+          const playLocked = (window as any).playVoiceLocked as
+            | ((s: Phaser.Sound.BaseSoundManager, k: string) => void)
+            | undefined;
+          if (playLocked) {
+            playLocked(this.sound, "sfx_correct");
+          } else {
+            this.sound.play("sfx_correct");
           }
 
           startCard.clearTint();
@@ -862,7 +880,14 @@ export default class GameScene extends Phaser.Scene {
 
       if (this.matches.every((m) => m)) {
         this.time.delayedCall(2000, () => {
-          this.sound.play("voice_complete");
+          const playLocked = (window as any).playVoiceLocked as
+            | ((s: Phaser.Sound.BaseSoundManager, k: string) => void)
+            | undefined;
+          if (playLocked) {
+            playLocked(this.sound, "voice_complete");
+          } else {
+            this.sound.play("voice_complete");
+          }
         });
       }
     });
@@ -886,7 +911,7 @@ export default class GameScene extends Phaser.Scene {
       const startPos = this.getHolePos(numCard, "right", 0);
       const rawEndPos = this.getHolePos(objCard, "left", 0);
 
-      const extraIntoObject = objCard.displayWidth * 0.35;
+      const extraIntoObject = objCard.displayWidth * 0.55;
 
       const endPos = {
         x: rawEndPos.x + extraIntoObject,
