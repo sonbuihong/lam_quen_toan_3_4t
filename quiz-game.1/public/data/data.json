@@ -1,0 +1,188 @@
+{
+  "levels": [
+    {
+      "id": 1,
+      "name": "Học đếm số 1",
+      "questions": [
+        {
+          "question": "Bé nhìn xem có bao nhiêu con mèo nào?",
+          "object": "cat",
+          "count": 1,
+          "options": [
+            { "label": "1", "isCorrect": true },
+            { "label": "2", "isCorrect": false },
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": false }
+          ]
+        },
+        {
+          "question": "Có mấy quả táo đỏ vậy bé ơi?",
+          "object": "apple",
+          "count": 1,
+          "options": [
+            { "label": "1", "isCorrect": true },
+            { "label": "2", "isCorrect": false },
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Học đếm số 2",
+      "questions": [
+        {
+          "question": "Bé thấy có bao nhiêu con thỏ trắng?",
+          "object": "rabbit",
+          "count": 2,
+          "options": [
+            { "label": "1", "isCorrect": false },
+            { "label": "2", "isCorrect": true },
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": false }
+          ]
+        },
+        {
+          "question": "Bé đếm giúp cô xem có mấy quả chuối nhé!",
+          "object": "banana",
+          "count": 2,
+          "options": [
+            { "label": "1", "isCorrect": false },
+            { "label": "2", "isCorrect": true },
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": false }
+          ]
+        },
+        {
+          "question": "Có mấy con mèo trong hình nè bé?",
+          "object": "cat",
+          "count": 1,
+          "options": [
+            { "label": "1", "isCorrect": true },
+            { "label": "2", "isCorrect": false },
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Học đếm số 3",
+      "questions": [
+        {
+          "question": "Có bao nhiêu quả bóng nhiều màu thế kia?",
+          "object": "ballon",
+          "count": 3,
+          "options": [
+            { "label": "1", "isCorrect": false },
+            { "label": "2", "isCorrect": false },
+            { "label": "3", "isCorrect": true },
+            { "label": "4", "isCorrect": false }
+          ]
+        },
+        {
+          "question": "Bé đếm xem có mấy chú vịt nhỏ nhé!",
+          "object": "duck",
+          "count": 3,
+          "options": [
+            { "label": "1", "isCorrect": false },
+            { "label": "2", "isCorrect": false },
+            { "label": "3", "isCorrect": true },
+            { "label": "4", "isCorrect": false }
+          ]
+        },
+        {
+          "question": "Có mấy quả táo đỏ thế kia hả bé?",
+          "object": "apple",
+          "count": 2,
+          "options": [
+            { "label": "1", "isCorrect": false },
+            { "label": "2", "isCorrect": true },
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Học đếm số 4",
+      "questions": [
+        {
+          "question": "Bé nhìn xem có bao nhiêu ngôi sao đang sáng?",
+          "object": "star",
+          "count": 4,
+          "options": [
+            { "label": "2", "isCorrect": false },
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": true },
+            { "label": "5", "isCorrect": false }
+          ]
+        },
+        {
+          "question": "Có bao nhiêu chiếc xe ô tô màu đỏ thế kia?",
+          "object": "car",
+          "count": 4,
+          "options": [
+            { "label": "2", "isCorrect": false },
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": true },
+            { "label": "5", "isCorrect": false }
+          ]
+        },
+        {
+          "question": "Bé đếm giúp cô có mấy quả chuối nhé!",
+          "object": "banana",
+          "count": 3,
+          "options": [
+            { "label": "2", "isCorrect": false },
+            { "label": "3", "isCorrect": true },
+            { "label": "4", "isCorrect": false },
+            { "label": "5", "isCorrect": false }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Học đếm số 5",
+      "questions": [
+        {
+          "question": "Có bao nhiêu con cá đang bơi tung tăng vậy?",
+          "object": "fish",
+          "count": 5,
+          "options": [
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": false },
+            { "label": "5", "isCorrect": true },
+            { "label": "6", "isCorrect": false }
+          ]
+        },
+        {
+          "question": "Bé đếm giúp cô có bao nhiêu ngôi sao nhé!",
+          "object": "star",
+          "count": 5,
+          "options": [
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": false },
+            { "label": "5", "isCorrect": true },
+            { "label": "6", "isCorrect": false }
+          ]
+        },
+        {
+          "question": "Có mấy con mèo đáng yêu thế kia hả bé?",
+          "object": "cat",
+          "count": 4,
+          "options": [
+            { "label": "3", "isCorrect": false },
+            { "label": "4", "isCorrect": true },
+            { "label": "5", "isCorrect": false },
+            { "label": "6", "isCorrect": false }
+          ]
+        }
+      ]
+    }
+  ]
+}
