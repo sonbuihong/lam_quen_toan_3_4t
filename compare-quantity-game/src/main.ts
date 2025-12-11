@@ -80,10 +80,7 @@ export function hideGameButtons() {
 }
 
 // Khởi tạo xoay màn hình
-initRotateOrientation(game, {
-    mainSceneKey: 'CompareScene',
-    overlaySceneKey: null,
-});
+initRotateOrientation(game);
 
 // Scale nút
 updateUIButtonScale();

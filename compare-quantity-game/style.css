@@ -21,6 +21,7 @@ body {
 canvas {
     display: block; /* loại bỏ margin tự động của canvas */
     margin-left: 0 !important;
+    margin-top: 0 !important;
 }
 
 #game-container.dim-overlay::before {
