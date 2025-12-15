@@ -21,6 +21,18 @@ export default class GameScene extends Phaser.Scene {
         { correctNumber: 4, options: [1, 2, 3, 4] },
     ];
 
+    private hasAudioUnlocked = false;
+    private pendingFirstPrompt = false;
+
+    public unlockFirstPrompt() {
+        this.hasAudioUnlocked = true;
+
+        if (this.pendingFirstPrompt) {
+            this.pendingFirstPrompt = false;
+            this.playPromptAudio();
+        }
+    }
+
     constructor() {
         super('GameScene');
     }
@@ -101,7 +113,14 @@ export default class GameScene extends Phaser.Scene {
             .setOrigin(0.5);
 
         // phát giọng đọc
-        this.playPromptAudio();
+        // 🔑 LẦN ĐẦU: chờ tap ở #game-container; CÁC LẦN SAU: auto phát
+        if (this.hasAudioUnlocked) {
+            // đã từng tap rồi (ví dụ lần chơi 2, level sau, restart...)
+            this.playPromptAudio();
+        } else {
+            // mới vào game lần đầu -> chỉ đánh dấu là đang chờ
+            this.pendingFirstPrompt = true;
+        }
 
         this.createBalloons();
 

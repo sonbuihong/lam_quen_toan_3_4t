@@ -54,19 +54,51 @@ const SOUND_MAP: Record<string, SoundConfig> = {
 };
 
 class AudioManager {
-    // Khai báo kiểu dữ liệu cho Map chứa các đối tượng Howl
     private sounds: Record<string, Howl> = {};
-    private isLoaded: boolean = false;
+    isLoaded: boolean = false;
+
+    // trạng thái gesture + danh sách play bị hoãn
+    private hasUserInteracted = false;
+    private pendingPlays: Array<() => void> = [];
 
     constructor() {
         // Cấu hình quan trọng cho iOS
         Howler.autoUnlock = true;
         Howler.volume(1.0);
+        (Howler as any).html5PoolSize = 32; // cho nhiều HTML5 audio hơn
+
+        this.setupFirstInteractionListener();
+    }
+
+    private setupFirstInteractionListener() {
+        const unlock = () => {
+            if (this.hasUserInteracted) return;
+
+            this.hasUserInteracted = true;
+
+            // chạy tất cả play đã xếp hàng, NGAY trong callback của gesture
+            const plays = [...this.pendingPlays];
+            this.pendingPlays = [];
+            plays.forEach((fn) => {
+                try {
+                    fn();
+                } catch (e) {
+                    console.warn('[AudioManager] pending play error', e);
+                }
+            });
+
+            window.removeEventListener('pointerdown', unlock, true);
+            window.removeEventListener('touchstart', unlock, true);
+            window.removeEventListener('click', unlock, true);
+        };
+
+        window.addEventListener('pointerdown', unlock, true);
+        window.addEventListener('touchstart', unlock, true);
+        window.addEventListener('click', unlock, true);
     }
 
     /**
      * Tải tất cả âm thanh
-     * @returns {Promise<void>}
      */
     loadAll(): Promise<void> {
         return new Promise((resolve) => {
@@ -74,7 +106,10 @@ class AudioManager {
             let loadedCount = 0;
             const total = keys.length;
 
-            if (total === 0) return resolve();
+            if (total === 0) {
+                this.isLoaded = true;
+                return resolve();
+            }
 
             keys.forEach((key) => {
                 const config = SOUND_MAP[key];
@@ -82,8 +117,8 @@ class AudioManager {
                 this.sounds[key] = new Howl({
                     src: [config.src],
                     loop: config.loop || false,
-                    volume: config.volume || 1.0,
-                    html5: true, // Cần thiết cho iOS
+                    volume: config.volume ?? 1.0,
+                    html5: true, // vẫn giữ cho iOS như bạn muốn
 
                     onload: () => {
                         loadedCount++;
@@ -93,7 +128,6 @@ class AudioManager {
                         }
                     },
                     onloaderror: (id: number, error: unknown) => {
-                        // Chúng ta vẫn có thể chuyển nó sang string để ghi log nếu muốn
                         const errorMessage =
                             error instanceof Error
                                 ? error.message
@@ -116,17 +150,29 @@ class AudioManager {
 
     /**
      * Phát một âm thanh
-     * @param {string} id - ID âm thanh
-     * @returns {number | undefined} - Sound ID của Howler
      */
     play(id: string): number | undefined {
-        if (!this.isLoaded || !this.sounds[id]) {
+        if (!this.sounds[id]) {
             console.warn(
-                `[AudioManager] Sound ID not found or not loaded: ${id}`
+                `[AudioManager] Sound ID not found (maybe not loaded yet): ${id}`
             );
             return;
         }
-        return this.sounds[id].play();
+
+        const doPlay = () => this.sounds[id].play();
+
+        // Nếu user CHƯA chạm lần nào → hoãn lại, chờ gesture đầu
+        if (!this.hasUserInteracted) {
+            this.pendingPlays.push(doPlay);
+            console.log(
+                '[AudioManager] Queue play until first interaction:',
+                id
+            );
+            return;
+        }
+
+        // Nếu đã có gesture rồi → play bình thường
+        return doPlay();
     }
 
     /**

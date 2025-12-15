@@ -30,6 +30,58 @@ const config: Phaser.Types.Core.GameConfig = {
 
 const game = new Phaser.Game(config);
 
+let firstTapHandled = false;
+
+const container = document.getElementById('game-container');
+if (container) {
+    container.addEventListener(
+        'pointerup',
+        () => {
+            if (firstTapHandled) return;
+            firstTapHandled = true;
+
+            // đây là gesture thật trên game-container
+            // 1) đánh dấu đã unlock audio
+            const gameScene = game.scene.getScene('GameScene') as any;
+            if (
+                gameScene &&
+                typeof gameScene.unlockFirstPrompt === 'function'
+            ) {
+                gameScene.unlockFirstPrompt();
+            }
+        },
+        { once: true, passive: true }
+    );
+}
+
+if (container) {
+    const handleLeftClick = (ev: PointerEvent) => {
+        // đã xử lý tap/click đầu rồi thì thôi
+        if (firstTapHandled) return;
+
+        // chỉ xử lý CHUỘT TRÁI
+        if (ev.pointerType !== 'mouse' || ev.button !== 0) {
+            return;
+        }
+
+        firstTapHandled = true;
+
+        const gameScene = game.scene.getScene('GameScene') as any;
+        if (gameScene && typeof gameScene.unlockFirstPrompt === 'function') {
+            gameScene.unlockFirstPrompt();
+        }
+
+        // sau khi xử lý xong, bỏ listener này
+        container.removeEventListener('pointerup', handleLeftClick, true);
+    };
+
+    // 👇 handler riêng cho chuột trái, chạy ở capture để không bị Phaser nuốt
+    container.addEventListener('pointerdown', handleLeftClick, {
+        capture: true,
+        passive: true,
+    });
+}
+
 function resizeGame() {
     const gameDiv = document.getElementById('game-container');
 
