@@ -62,8 +62,6 @@ export class LessonSelectScene extends Phaser.Scene {
         if (!this.textures.exists('diff_width')) {
             this.load.image('diff_width', 'assets/ui/diff_width.png');
         }
-
-        this.load.audio('voice_rotate', 'audio/sfx/rotate.mp3');
     }
 
     create() {

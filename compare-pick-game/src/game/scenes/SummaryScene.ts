@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { hideGameButtons } from '../../main';
+import AudioManager from '../../audio/AudioManager';
 
 type DifficultyLevel = 1 | 2 | 3;
 
@@ -38,7 +39,7 @@ export class SummaryScene extends Phaser.Scene {
         (this.scene.get('CompareScene') as any)?.stopAllVoices?.();
 
         // Phát âm thanh chúc mừng khi vào màn hình
-        this.sound.play('complete');
+        AudioManager.play('complete');
 
         this.containerEl = document.getElementById('game-container');
 
@@ -49,8 +50,8 @@ export class SummaryScene extends Phaser.Scene {
 
         // Phát âm thanh chiến thắng sau 2s
         this.time.delayedCall(2000, () => {
-            this.sound.play('fireworks');
-            this.sound.play('applause');
+            AudioManager.play('fireworks');
+            AudioManager.play('applause');
         });
 
         // ==== Banner kết quả (ảnh nền) ====
@@ -100,9 +101,9 @@ export class SummaryScene extends Phaser.Scene {
 
         replayBtn.on('pointerdown', () => {
             // 1. Tắt toàn bộ âm thanh đang chạy (end game + mọi scene khác)
-            this.sound.stopAll();
+            AudioManager.stopAll();
 
-            this.sound.play('sfx-click');
+            AudioManager.play('sfx-click');
             this.clearDimBackground();
             this.stopConfetti();
             this.scene.stop('SummaryScene');
@@ -123,8 +124,8 @@ export class SummaryScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: true });
 
         exitBtn.on('pointerdown', () => {
-            this.sound.stopAll();
-            this.sound.play('sfx-click');
+            AudioManager.stopAll();
+            AudioManager.play('sfx-click');
             this.clearDimBackground();
             this.stopConfetti();
             this.scene.start('LessonSelectScene');

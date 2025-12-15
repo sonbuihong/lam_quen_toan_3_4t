@@ -4,6 +4,7 @@ import type { LessonPackage, LessonItem } from '../types/lesson';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 import { domBackgroundManager } from '../domBackground';
 import { showGameButtons } from '../../main';
+import AudioManager from '../../audio/AudioManager';
 
 type DifficultyLevel = 1 | 2 | 3;
 
@@ -221,14 +222,7 @@ export class LessonScene extends Phaser.Scene {
         }
 
         if (promptAudio) {
-            const hasSound =
-                this.sound.get(promptAudio) !== null ||
-                (this.cache.audio && this.cache.audio.exists(promptAudio));
-
-            if (hasSound) {
-                this.sound.play(promptAudio);
-            }
-            // 👉 đặt timer 5s đọc lại câu hỏi
+            AudioManager.play(promptAudio);
             this.schedulePromptReplay();
         }
 
@@ -250,14 +244,7 @@ export class LessonScene extends Phaser.Scene {
             callback: () => {
                 const key = this.currentPromptAudioKey;
                 if (!key) return;
-
-                const hasSound =
-                    this.sound.get(key) !== null ||
-                    (this.cache.audio && this.cache.audio.exists(key));
-
-                if (hasSound) {
-                    this.sound.play(key);
-                }
+                AudioManager.play(key);
             },
             callbackScope: this,
             loop: false,
@@ -525,19 +512,6 @@ export class LessonScene extends Phaser.Scene {
         }
     }
 
-    playRandomCorrect(sound: Phaser.Sound.BaseSoundManager) {
-        const keys = [
-            'correct_answer_1',
-            'correct_answer_2',
-            'correct_answer_3',
-            'correct_answer_4',
-        ];
-
-        const key = keys[Math.floor(Math.random() * keys.length)];
-        const sfx = sound.get(key) ?? sound.add(key);
-        sfx.play();
-    }
-
     // ===== Xử lý chọn đáp án =====
 
     private onSelect(
@@ -579,8 +553,9 @@ export class LessonScene extends Phaser.Scene {
 
         if (isCorrect) {
             this.score++;
-            this.sound.play('correct');
-            this.playRandomCorrect(this.sound);
+            AudioManager.stopSound(this.currentPromptAudioKey || '');
+            AudioManager.play('sfx-correct');
+            AudioManager.playCorrectAnswer();
 
             // Panel đúng
             if (this.textures.exists(correctKey)) {
@@ -601,7 +576,7 @@ export class LessonScene extends Phaser.Scene {
                 },
             });
         } else {
-            this.sound.play('wrong');
+            AudioManager.play('sfx-wrong');
             // Panel sai
             if (this.textures.exists(wrongKey)) {
                 panel.setTexture(wrongKey);
@@ -649,8 +624,8 @@ export class LessonScene extends Phaser.Scene {
         if (!this.lesson) return;
 
         // dừng âm thanh đang phát nếu có
-        this.sound.stopAll();
-        this.sound.play('sfx-click');
+        AudioManager.stopAll();
+        AudioManager.play('sfx-click');
 
         // reset state
         this.index = 0;
@@ -669,8 +644,8 @@ export class LessonScene extends Phaser.Scene {
     }
 
     public goToNextLevel() {
-        this.sound.stopAll();
-        this.sound.play('sfx-click');
+        AudioManager.stopAll();
+        AudioManager.play('sfx-click');
         // bỏ qua câu hiện tại, sang câu tiếp theo
         if (!this.lesson) return;
 

@@ -1,6 +1,7 @@
 // src/game/scenes/PreloadScene.ts
 import Phaser from 'phaser';
 import type { LessonPackage } from '../types/lesson';
+import AudioManager from '../../audio/AudioManager';
 
 type DifficultyLevel = 1 | 2 | 3;
 
@@ -47,19 +48,6 @@ export class PreloadScene extends Phaser.Scene {
         this.load.image('btn_reset', 'assets/ui/btn_reset.png');
         this.load.image('btn_exit', 'assets/ui/btn_exit.png');
 
-        // === AUDIO CHUNG ===
-        this.load.audio('voice_rotate', 'audio/sfx/rotate.mp3');
-        this.load.audio('complete', 'audio/sfx/complete.mp3');
-        this.load.audio('fireworks', 'audio/sfx/fireworks.mp3');
-        this.load.audio('applause', 'audio/sfx/applause.mp3');
-        this.load.audio('sfx-click', 'audio/sfx/click.mp3');
-        this.load.audio('correct', 'audio/sfx/correct.mp3');
-        this.load.audio('wrong', 'audio/sfx/wrong.mp3');
-        this.load.audio('correct_answer_1', 'audio/sfx/correct_answer_1.mp3');
-        this.load.audio('correct_answer_2', 'audio/sfx/correct_answer_2.mp3');
-        this.load.audio('correct_answer_3', 'audio/sfx/correct_answer_3.mp3');
-        this.load.audio('correct_answer_4', 'audio/sfx/correct_answer_4.mp3');
-
         // === JSON BÀI HỌC ===
         // XÓA JSON CŨ TRƯỚC
         if (this.cache.json.exists('lessonData')) {
@@ -95,13 +83,24 @@ export class PreloadScene extends Phaser.Scene {
             items: filteredItems,
         };
 
-        // 4) preload asset cho đúng bộ câu đã chọn
+        // 4) preload asset cho đúng bộ câu đã chọn và load audio
         this.preloadLessonAssets(lessonForPlay).then(() => {
             this.lessonData = lessonForPlay;
-            this.scene.start('LessonScene', {
-                lesson: this.lessonData,
-                difficulty: this.selectedDifficulty,
-            });
+            AudioManager.loadAll()
+                .then(() => {
+                    // console.log(
+                    //     'Tất cả tài nguyên (Phaser & Audio) đã tải xong.'
+                    // );
+                    this.scene.start('LessonScene', {
+                        lesson: this.lessonData,
+                        difficulty: this.selectedDifficulty,
+                    });
+                })
+                .catch((error) => {
+                    console.error('Lỗi khi tải Audio:', error);
+                    // Xử lý lỗi: Vẫn chuyển Scene nếu lỗi không quá nghiêm trọng.
+                    this.scene.start('CompareScene');
+                });
         });
     }
 

@@ -60,10 +60,7 @@ export function hideGameButtons() {
 }
 
 // Khởi tạo xoay màn hình
-initRotateOrientation(game, {
-    mainSceneKey: 'LessonSelectScene',
-    overlaySceneKey: null,
-});
+initRotateOrientation(game);
 
 // Scale nút
 updateUIButtonScale();

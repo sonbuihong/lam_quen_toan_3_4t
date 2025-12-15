@@ -84,7 +84,7 @@
         },
         {
             "id": "q5",
-            "promptText": "LỐI VÀO HANG NÀO RỘNG HƠN?",
+            "promptText": "CỬA HANG NÀO RỘNG HƠN?",
             "promptAudio": "audio/width/prompt_cave_1.mp3",
             "options": [
                 {
@@ -103,7 +103,7 @@
         },
         {
             "id": "q6",
-            "promptText": "LỐI VÀO HANG NÀO HẸP HƠN?",
+            "promptText": "CỬA HANG NÀO HẸP HƠN?",
             "promptAudio": "audio/width/prompt_cave_2.mp3",
             "options": [
                 {
@@ -218,7 +218,7 @@
         },
         {
             "id": "q11",
-            "promptText": "LỐI VÀO HANG NÀO RỘNG NHẤT?",
+            "promptText": "CỬA HANG NÀO RỘNG NHẤT?",
             "promptAudio": "audio/width/prompt_cave_3.mp3",
             "options": [
                 {
@@ -242,7 +242,7 @@
         },
         {
             "id": "q12",
-            "promptText": "LỐI VÀO HANG NÀO HẸP NHẤT?",
+            "promptText": "CỬA HANG NÀO HẸP NHẤT?",
             "promptAudio": "audio/width/prompt_cave_4.mp3",
             "options": [
                 {
@@ -304,7 +304,7 @@
         },
         {
             "id": "q15",
-            "promptText": "LỐI VÀO HANG NÀO RỘNG HƠN?",
+            "promptText": "CỬA HANG NÀO RỘNG HƠN?",
             "promptAudio": "audio/width/prompt_cave_1.mp3",
             "options": [
                 {
@@ -439,7 +439,7 @@
         },
         {
             "id": "q20",
-            "promptText": "LỐI VÀO HANG NÀO RỘNG NHẤT?",
+            "promptText": "CỬA HANG NÀO RỘNG NHẤT?",
             "promptAudio": "audio/width/prompt_cave_3.mp3",
             "options": [
                 {
@@ -468,7 +468,7 @@
         },
         {
             "id": "q21",
-            "promptText": "LỐI VÀO HANG NÀO HẸP NHẤT?",
+            "promptText": "CỬA HANG NÀO HẸP NHẤT?",
             "promptAudio": "audio/width/prompt_cave_4.mp3",
             "options": [
                 {
