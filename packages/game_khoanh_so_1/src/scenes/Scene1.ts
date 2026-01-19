@@ -176,7 +176,7 @@ export default class Scene1 extends Phaser.Scene {
         const board = this.add.image(cx, boardY, TextureKeys.S1_Board)
             .setOrigin(0.5, 0)
             .setScale(scl[0], scl[1])
-            .setDepth(0); // Background level
+            .setDepth(0);
             
         board.displayWidth = GameUtils.getW(this) * 0.95;
         // Giữ tỉ lệ đơn giản, có thể chỉnh lại scale sau
@@ -224,12 +224,13 @@ export default class Scene1 extends Phaser.Scene {
         console.log(`Đã khoanh trúng: ${selectedObjects.length} đối tượng.`);
 
         // 2. Kiểm tra Logic Game
-        const hasCorrectBall = selectedObjects.some(obj => obj.texture.key === TextureKeys.S1_Ball);
+        // Chỉ chấp nhận nếu: khoanh đúng 1 hình và hình đó là bóng
+        const correctObjects = selectedObjects.filter(obj => obj.texture.key === TextureKeys.S1_Ball);
+        const isSuccess = selectedObjects.length === 1 && correctObjects.length === 1;
 
-        if (hasCorrectBall) {
+        if (isSuccess) {
             // --- SUCCESS CASE ---
-            // Khoanh trúng BÓNG ĐÚNG (TextureKeys.S1_Ball === 'ball')
-            const correctObjects = selectedObjects.filter(obj => obj.texture.key === TextureKeys.S1_Ball);
+            // Khoanh trúng ĐÚNG 1 BÓNG THÔI
             
             // Vẽ vòng tròn bao quanh
             const graphics = this.add.graphics();
@@ -262,8 +263,12 @@ export default class Scene1 extends Phaser.Scene {
 
         } else {
             // --- FAILURE CASE ---
-            // Khoanh trượt hoặc khoanh trúng vật sai
-            console.log("Khoanh sai hoặc không trúng!");
+            // Khoanh sai hoặc khoanh nhiều hơn 1 hình
+            if (selectedObjects.length > 1) {
+                console.log("Khoanh quá nhiều hình! Chỉ khoanh 1 hình thôi!");
+            } else {
+                console.log("Khoanh sai hoặc không trúng!");
+            }
             
             // Rung nhẹ màn hình
             this.cameras.main.shake(300, 0.01);
