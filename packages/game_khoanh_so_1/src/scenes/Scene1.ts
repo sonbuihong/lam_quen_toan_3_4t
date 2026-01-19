@@ -61,8 +61,8 @@ export default class Scene1 extends Phaser.Scene {
 
         // 5. Start Logic (Conditional)
         // 5. Start Logic
-        // A. Nhạc nền chạy ngay lập tức (không đợi touch)
-        this.setupAudio();
+        // A. Nhạc nền + Background (Sync with game_dem_s1)
+        this.setupBackgroundAndAudio();
 
         // B. Game logic + Voice Intro (Cần touch để browser không chặn AudioContext của voice/sfx)
         if (!Scene1.hasInteracted) {
@@ -143,7 +143,15 @@ export default class Scene1 extends Phaser.Scene {
     // PHẦN 1: CÀI ĐẶT HỆ THỐNG (SYSTEM SETUP)
     // =================================================================
 
-    private setupAudio() {
+    // =================================================================
+    // PHẦN 1: CÀI ĐẶT HỆ THỐNG (SYSTEM SETUP)
+    // =================================================================
+
+    private setupBackgroundAndAudio() {
+        // 1. Đổi Background (Có thể gọi trong này hoặc ngoài create đều được, để đây cho giống mẫu)
+        // changeBackground('assets/images/bg/background.jpg'); // Đã gọi ở trên create
+
+        // 2. Phát nhạc nền (BGM)
         try {
             if (this.sound.get(AudioKeys.BgmNen)) {
                 this.sound.stopByKey(AudioKeys.BgmNen);

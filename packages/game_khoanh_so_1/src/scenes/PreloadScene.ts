@@ -40,21 +40,21 @@ export default class PreloadScene extends Phaser.Scene {
 
     create() {
         // Chiến thuật: Tải file QUAN TRỌNG nhất (Lời dẫn + SFX cơ bản) trước.
-        // Các file khác tải ngầm sau.
+        // NHƯNG để giống game_dem_s1, ta sẽ vào Game ngay lập tức.
+        // Việc load essentials sẽ chạy ngầm hoặc để Scene1 tự xử lý (nếu cần).
+        
+        // Start Scene1 ngay
+        this.scene.start(SceneKeys.Scene1);
+        
+        // Vẫn gọi load ngầm để cache sau này (nếu muốn)
         const essentials = [
             AudioKeys.VoiceIntro, 
             'sfx-correct', 
             'sfx-ting', 
             'sfx-wrong'
         ];
-
         AudioManager.loadEssentials(essentials).then(() => {
-             console.log("Essential audio loaded. Starting Game...");
-             
-             // Chuyển scene ngay khi có lời dẫn
-             this.scene.start(SceneKeys.Scene1);
-             
-             // Tải nốt các file còn lại (chạy ngầm, không chặn game)
+             console.log("Essential audio pre-loaded in background.");
              AudioManager.loadRest();
         });
     }
