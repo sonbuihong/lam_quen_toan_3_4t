@@ -24,7 +24,7 @@ export default class Scene1 extends Phaser.Scene {
     private levelTarget: any = null;
 
     private isIntroActive: boolean = false;
-    private isWaitingForIntroStart: boolean = true;
+
     private static hasInteracted: boolean = false;
 
     // Logic States
@@ -41,8 +41,9 @@ export default class Scene1 extends Phaser.Scene {
         childId: 'sonbui_8386',
         gameId: 'game_dem_so_1',
         gameVersion: '1.0.0',
-        gameType: ExerciseType.COUNTING, 
-        ageLevel: '3-4'
+        gameType: ExerciseType.COUNTING,
+        ageLevel: '3-4',
+        testmode: true
     });
     
     // UI Elements
@@ -94,16 +95,11 @@ export default class Scene1 extends Phaser.Scene {
 
         this.handleIntroLogic();
 
-        this.input.on('pointerdown', () => {
-             if (!this.isSessionActive && !this.isWaitingForIntroStart) {
-                 this.runGameFlow();
-             }
-        });
+
     }
 
     private handleIntroLogic() {
          if (Scene1.hasInteracted) {
-             this.isWaitingForIntroStart = false;
              this.resumeAudioContext();
              setTimeout(() => {
                 this.playIntroSequence();
@@ -111,10 +107,8 @@ export default class Scene1 extends Phaser.Scene {
              }, 500);
 
         } else {
-             this.isWaitingForIntroStart = true;
              this.input.once('pointerdown', () => {
                 Scene1.hasInteracted = true;
-                this.isWaitingForIntroStart = false;
                 this.resumeAudioContext();
                 this.playIntroSequence();
                 this.runGameFlow();
@@ -186,8 +180,10 @@ export default class Scene1 extends Phaser.Scene {
                 this.btnMic.setScale(1); 
                 this.tweens.killTweensOf(this.btnMic);
 
-                if (duration < 500) {
-                    console.log("Noise ignored.");
+                console.log(`[Voice] Recorded Duration: ${duration}ms (Threshold: ${GameConstants.VOICE.MIN_DURATION}ms)`);
+                
+                if (duration < GameConstants.VOICE.MIN_DURATION) {
+                    console.log(`%c[Voice] Noise ignored (Too short: ${duration}ms < ${GameConstants.VOICE.MIN_DURATION}ms)`, "color: orange");
                     return;
                 }
                 
@@ -296,6 +292,7 @@ export default class Scene1 extends Phaser.Scene {
             let sessionRes;
             if (this.testMode) {
                  sessionRes = { allowPlay: true, quotaRemaining: 999, index: 0 };
+                 this.voiceHelper.setSessionId("TEST_SESSION_ID"); // Fake ID for local testing
             } else {
                  sessionRes = await this.voiceHelper.startEvaluation();
             }
@@ -328,11 +325,19 @@ export default class Scene1 extends Phaser.Scene {
     }
 
     private async sendAudioToBackend(audioBlob: Blob, inputTarget: string | object) {
-        if (this.isProcessing || !this.voiceHelper.sessionId) return;
-        
+        if (this.isProcessing) {
+            console.warn("[Voice] Submission ignored: Waiting for previous request.");
+            return;
+        }
+        if (!this.voiceHelper.sessionId) {
+            console.error("[Voice] Submission failed: No Session ID.");
+            return;
+        }
+
         this.isProcessing = true;
         
         try {
+            console.log("[Voice] Sending audio to backend...");
             const finalTargetText = (typeof inputTarget === 'string') ? { text: inputTarget } : inputTarget;
             
             // Submit (Index is 1-based for API)
@@ -343,6 +348,14 @@ export default class Scene1 extends Phaser.Scene {
                 0 
             );
             
+            console.log("[Voice] Backend Result:", result);
+
+            if (!result) {
+                console.error("[Voice] No result from backend!");
+                this.isProcessing = false;
+                return;
+            }
+
             this.processResult(result);
             this.submissionCount++;
 
@@ -354,6 +367,8 @@ export default class Scene1 extends Phaser.Scene {
 
             // Transition Logic
             const nextIndex = this.currentQuestionIndex + 1;
+            console.log(`[Voice] Transitioning to next level in 3s... (Next: ${nextIndex})`);
+            
             this.time.delayedCall(3000, () => {
                 if (uiScene?.hideScorePopup) uiScene.hideScorePopup();
 

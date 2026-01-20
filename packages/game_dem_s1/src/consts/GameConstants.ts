@@ -34,7 +34,9 @@ export const GameConstants = {
         /** Thời gian im lặng (ms) -> Tự động dừng */
         SILENCE_DURATION: 2000,
         /** Thời gian ghi âm tối đa (ms) -> Tự động dừng */
-        MAX_RECORD_DURATION: 5000, 
+        MAX_RECORD_DURATION: 5000,
+        /** Thời gian ghi âm tối thiểu (ms) -> Nếu thấp hơn coi là nhiễu */
+        MIN_DURATION: 250, 
     },
 
     // =========================================
