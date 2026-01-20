@@ -9,41 +9,46 @@ import { showGameButtons, hideGameButtons } from '../main';
 import { useVoiceEvaluation } from '../hooks/useVoiceEvaluation';
 import { playVoiceLocked, setGameSceneReference, resetVoiceState } from '../utils/rotateOrientation';
 import { IdleManager } from '../utils/IdleManager';
+import { ExerciseType } from '../lib/voice-session-client';
 
 export default class Scene1 extends Phaser.Scene {
+    // --- PROPERTIES ---
     private bgm!: Phaser.Sound.BaseSound;
     private voiceRecorder!: VoiceRecorder;
     private objectsToCount: Phaser.GameObjects.Image[] = [];
     private currentQuota: number = 0;
-    private currentQuestionIndex: number = 0;
+    
+    // Level Management
+    private LEVEL_KEYS = [DataKeys.LevelS1Config, DataKeys.LevelS2Config, DataKeys.LevelS3Config];
+    private currentQuestionIndex: number = 0; // Maps to Level Index (0, 1, 2)
     private levelTarget: any = null;
 
     private isIntroActive: boolean = false;
     private isWaitingForIntroStart: boolean = true;
     private static hasInteracted: boolean = false;
 
-    // --- LOGIC STATES ---
+    // Logic States
     private isProcessing: boolean = false; // Chặn spam request
     private isSessionActive: boolean = false; // Check session status
+    private isStartingSession: boolean = false; // Guard for async start
     private submissionCount: number = 0; // Check valid submissions
     private isRecording: boolean = false;
-
     private testMode: boolean = true; // Bật Test Mode để debug
 
-    // Voice Evaluation Hook (Helper)
+    // Voice Hook
+    // Explicitly using COUNTING for clarity, though hook defaults to it.
     private voiceHelper = useVoiceEvaluation({
         childId: 'sonbui_8386',
         gameId: 'game_dem_so_1',
         gameVersion: '1.0.0',
+        gameType: ExerciseType.COUNTING, 
         ageLevel: '3-4'
     });
     
-    // Các phần tử UI
+    // UI Elements
     private btnMic!: Phaser.GameObjects.Image;
-    private btnPlayback!: Phaser.GameObjects.Image; // Nút nghe lại
-    private textHint!: Phaser.GameObjects.Text;
-    private totalQuestions: number = 3; 
-
+    private btnPlayback!: Phaser.GameObjects.Image; 
+    
     // Idle
     private idleManager!: IdleManager;
     private handCursor!: Phaser.GameObjects.Image;
@@ -59,6 +64,7 @@ export default class Scene1 extends Phaser.Scene {
         this.isProcessing = false;
         this.submissionCount = 0;
         this.isSessionActive = false;
+        this.isStartingSession = false;
         this.isRecording = false;
         resetVoiceState();
     }
@@ -68,70 +74,69 @@ export default class Scene1 extends Phaser.Scene {
         setGameSceneReference(this);
         showGameButtons();
 
+        // 1. Setup System
         this.setupBackgroundAndAudio();
-        this.createUI();
-        this.loadLevel(DataKeys.LevelS1Config);
-        
-        // Setup Voice Recorder
+        this.setupLifecycleListeners();
         this.setupVoiceRecorder();
-
-        // Setup Idle Manager
         this.setupIdleManager();
 
-        // Setup Lifecycle Listeners (Exit/Reload/Offline)
-        this.setupLifecycleListeners();
+        // 2. Setup UI
+        this.createUI();
 
-        // Launch UI Scene
+        // 3. Init Logic (Load Level 1 but don't play yet)
+        this.loadLevel(0);
+
+        // 4. Intro & Start Flow
         if (!this.scene.get(SceneKeys.UI).scene.isActive()) {
             this.scene.launch(SceneKeys.UI, { sceneKey: SceneKeys.Scene1 });
             this.scene.bringToTop(SceneKeys.UI);
         }
 
-        this.input.on('pointerdown', () => {
-            // Bắt đầu luồng Game
-            this.runGameFlow();
-        });
+        this.handleIntroLogic();
 
-        // Xử lý Logic Intro (Tap to start cho lần đầu)
-        if (Scene1.hasInteracted) {
+        this.input.on('pointerdown', () => {
+             if (!this.isSessionActive && !this.isWaitingForIntroStart) {
+                 this.runGameFlow();
+             }
+        });
+    }
+
+    private handleIntroLogic() {
+         if (Scene1.hasInteracted) {
              this.isWaitingForIntroStart = false;
-             
-             // Auto play
-             const soundManager = this.sound as Phaser.Sound.WebAudioSoundManager;
-             if (soundManager.context && soundManager.context.state === 'suspended') {
-                soundManager.context.resume();
-            }
-            setTimeout(() => {
+             this.resumeAudioContext();
+             setTimeout(() => {
                 this.playIntroSequence();
-            }, 500);
+                this.runGameFlow(); 
+             }, 500);
 
         } else {
              this.isWaitingForIntroStart = true;
-             // Hiển thị gợi ý chạm màn hình (Option)
-             // console.log("Chạm vào màn hình để bắt đầu");
-             
              this.input.once('pointerdown', () => {
-            Scene1.hasInteracted = true;
-            this.isWaitingForIntroStart = false;
-
-            const soundManager = this.sound as Phaser.Sound.WebAudioSoundManager;
-            if (soundManager.context && soundManager.context.state === 'suspended') {
-                soundManager.context.resume();
-            }
-
-                 this.playIntroSequence();
+                Scene1.hasInteracted = true;
+                this.isWaitingForIntroStart = false;
+                this.resumeAudioContext();
+                this.playIntroSequence();
+                this.runGameFlow();
              });
         }
     }
 
-    private setupLifecycleListeners() {
-        // 1. Xử lý khi reload/tắt tab
-        window.addEventListener('beforeunload', this.handleUnload);
+    private resumeAudioContext() {
+        const soundManager = this.sound as Phaser.Sound.WebAudioSoundManager;
+        if (soundManager.context && soundManager.context.state === 'suspended') {
+            soundManager.context.resume();
+        }
+    }
 
-        // 2. Xử lý khi mất mạng
+    // =================================================================
+    // PHẦN 1: CÀI ĐẶT HỆ THỐNG (SYSTEM SETUP)
+    // =================================================================
+
+    private setupLifecycleListeners() {
+        window.addEventListener('beforeunload', this.handleUnload);
         window.addEventListener('offline', this.handleOffline);
         
-        // Cleanup khi scene shutdown
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
              window.removeEventListener('beforeunload', this.handleUnload);
              window.removeEventListener('offline', this.handleOffline);
@@ -139,9 +144,6 @@ export default class Scene1 extends Phaser.Scene {
     }
 
     private handleUnload = async (e: BeforeUnloadEvent) => {
-        // Cố gắng gửi request End Session (Best effort)
-        // Lưu ý: Browser có thể kill request nếu không dùng keepalive (cần update SDK nếu cần)
-        // Ở đây ta gọi hàm helper, hy vọng kịp gửi đi.
         if (this.isSessionActive) {
              await this.finishGameSession(true); 
         } 
@@ -149,77 +151,17 @@ export default class Scene1 extends Phaser.Scene {
 
     private handleOffline = () => {
         console.log("Mất kết nối mạng!");
-        
-        // Chỉ end session nếu đang active
         if (!this.isSessionActive) return;
-
-        // Có thể gọi finish luôn hoặc đợi user reconnect (tuỳ logic)
-        // Ở đây ta chọn kết thúc an toàn để bảo toàn điểm
         this.finishGameSession();
         this.isSessionActive = false;
     }
-    
-    private async runGameFlow() {
-        // --- Bước 1: Kiểm tra quyền Mic trước ---
-        const hasMicPermission = await this.voiceRecorder.checkPermission();
-        if (!hasMicPermission) {
-            console.log("Cần quyền truy cập Micro để chơi!");
-            return;
-        }
-
-        // --- Bước 2: Bắt đầu phiên (Start Session) ---
-        
-        try {
-            let sessionRes;
-            if (this.testMode) {
-                 console.log("--- TEST MODE ACTIVE: MOCK SESSION START ---");
-                 sessionRes = {
-                     allowPlay: true,
-                     quotaRemaining: 999,
-                     index: 0
-                 };
-            } else {
-                 sessionRes = await this.voiceHelper.startEvaluation();
-            }
-
-            // Kiểm tra kết quả
-            if (!sessionRes.allowPlay) {
-                console.log(sessionRes.message || "Không thể bắt đầu game (Hết lượt/Banned)");
-                return;
-            }
-
-            // Success
-            this.currentQuota = sessionRes.quotaRemaining;
-            this.currentQuestionIndex = sessionRes.index; // 0 nếu mới, >0 nếu resume
-            
-            // --- UPDATE STATE ---
-            this.isSessionActive = true;
-            this.btnMic.setVisible(true);
-
-            console.log(`Sẵn sàng! Lượt: ${this.currentQuota}`);
-
-            // Nếu resume
-            if (sessionRes.index > 0) {
-                console.log(`Resuming game at index ${sessionRes.index}`);
-            }
-
-        } catch (err: any) {
-            console.error("Start Session Error:", err);
-            console.log("Lỗi kết nối máy chủ");
-        }
-    }
 
     private setupBackgroundAndAudio() {
-        // 1. Đổi Background dùng Manager
         changeBackground('assets/images/bg/background.jpg');
-
-        // 2. Phát nhạc nền (BGM)
-        // Dừng BGM cũ nếu có
         try {
              if (this.sound.get(AudioKeys.BgmNen)) {
                 this.sound.stopByKey(AudioKeys.BgmNen);
             }
-            // Init và phát BGM mới
             this.bgm = this.sound.add(AudioKeys.BgmNen, {
                 loop: true,
                 volume: 0.25,
@@ -230,66 +172,94 @@ export default class Scene1 extends Phaser.Scene {
         }
     }
 
+    private setupVoiceRecorder() {
+        this.voiceRecorder = new VoiceRecorder({
+            onRecordingStart: () => {
+                if (this.bgm && this.bgm.isPlaying) this.bgm.pause();
+                AudioManager.stopAll();
+                this.isRecording = true;
+                this.tweens.add({ targets: this.btnMic, scale: 1.2, duration: 200, yoyo: true, repeat: -1 });
+            },
+            onRecordingStop: (audioBlob, duration) => {
+                if (this.bgm && this.bgm.isPaused) this.bgm.resume();
+                this.isRecording = false;
+                this.btnMic.setScale(1); 
+                this.tweens.killTweensOf(this.btnMic);
+
+                if (duration < 500) {
+                    console.log("Noise ignored.");
+                    return;
+                }
+                
+                // Auto Submit
+                const targetText = this.levelTarget || { start: 1, end: 1 };
+                this.sendAudioToBackend(audioBlob, targetText);
+            },
+            onVolumeChange: (vol) => {},
+            onError: (err) => console.error("Mic Error:", err)
+        });
+        
+        // Button Logic will be bound in createUI or here? 
+        // btnMic created in createUI. Need to bind event there or ensuring it exists.
+        // It's safer to bind in createUI or create.
+    }
+
+    // =================================================================
+    // PHẦN 2: TẠO GIAO DIỆN & LEVEL (UI & LEVEL CREATION)
+    // =================================================================
+
     private createUI() {
         const UI = GameConstants.SCENE1.UI;
         const cx = GameUtils.pctX(this, 0.5);
-        const scl = [1, 0.72]; // Scale từ user snippet
+        const scl = [1, 0.72]; 
 
-        // 1. Logic BANNER & BOARD từ User Snippet
-        
-        // Lấy kích thước Banner
+        // 1. Logic BANNER & BOARD
         const bannerTexture = this.textures.get(TextureKeys.S1_Banner);
-        let bannerHeight = 100; // Fallback mặc định
+        let bannerHeight = 100; 
         if (bannerTexture && bannerTexture.key !== '__MISSING') {
             bannerHeight = bannerTexture.getSourceImage().height * 0.7;
         }
-
         const boardY = bannerHeight + GameUtils.pctY(this, UI.BOARD_OFFSET);
         
-        // Tâm bảng (Board Center)
-        const board = this.add
-            .image(cx, boardY, TextureKeys.S1_Board)
-            .setOrigin(0.5, 0)
-            .setScale(scl[0], scl[1])
-            .setDepth(0);
-
-        board.displayWidth = GameUtils.getW(this) * 0.95;
+        const board = this.add.image(cx, boardY, TextureKeys.S1_Board)
+            .setOrigin(0.5, 0).setScale(scl[0], scl[1]).setDepth(0);
+        board.displayWidth = GameUtils.getW(this) * 0.93;
             
-        // 2. Text gợi ý
-        // this.textHint = this.add.text(cx, boardY + 50, "Nhấn nút để đếm", {
-        //     fontSize: '40px',
-        //     color: '#000000',
-        //     fontFamily: 'Arial'
-        // }).setOrigin(0.5);
+        // 2. Nút Loa
+        this.add.image(cx * 1.77, boardY * 6.5, TextureKeys.Loa).setOrigin(0.5).setScale(1);
 
         // 3. Nút Mic
         this.btnMic = this.add.image(cx, GameUtils.pctY(this, 0.85), TextureKeys.Mic) 
-             .setScale(1)
-             .setInteractive()
-             .setVisible(false); // Mặc định ẩn, chỉ hiện khi Session Start thành công
+             .setScale(1).setInteractive().setVisible(false);
 
-        // 4. Nút nghe lại (Ẩn ban đầu)
-        this.btnPlayback = this.add.image(cx + 100, GameUtils.pctY(this, 0.85), TextureKeys.Mic) // Dùng icon Mic làm placeholder
-             .setScale(0.7)
-             .setInteractive()
-             .setVisible(false) // Ẩn cho đến khi ghi âm xong
+        this.btnMic.on('pointerdown', () => {
+             this.resetIdle(); 
+             if (this.isRecording) {
+                 this.voiceRecorder.stop(); 
+             } else {
+                 this.voiceRecorder.start();
+             }
+        });
 
-        // 5. Số 1
-        this.add.image(GameUtils.pctX(this, 0.07), boardY + 100, TextureKeys.Number)
-             .setOrigin(0.5)
-             .setScale(1);
-
-        // 6. Xúc xắc
-        this.add.image(GameUtils.pctX(this, 0.15), boardY + 100, TextureKeys.Dice)
-             .setOrigin(0.5)
-             .setScale(1);
+        // 4. Nút nghe lại
+        this.btnPlayback = this.add.image(cx + 100, GameUtils.pctY(this, 0.85), TextureKeys.Mic)
+             .setScale(0.7).setInteractive().setVisible(false);
     }
 
-    private loadLevel(configKey: string) {
-        // Unlock processing for new level
+    // =================================================================
+    // PHẦN 3: LOGIC GAMEPLAY (GAMEPLAY LOGIC)
+    // =================================================================
+
+    private loadLevel(index: number) {
+        if (index < 0 || index >= this.LEVEL_KEYS.length) {
+            console.error("Invalid Level Index:", index);
+            return;
+        }
+
+        const configKey = this.LEVEL_KEYS[index];
         this.isProcessing = false;
 
-        // Cleanup old objects
+        // Cleanup
         this.objectsToCount.forEach(obj => obj.destroy());
         this.objectsToCount = [];
 
@@ -297,120 +267,75 @@ export default class Scene1 extends Phaser.Scene {
         const data = this.cache.json.get(configKey);
         if (!data || !data.images) return;
 
-        // Tạo objects
+        // Create objects
         data.images.forEach((def: any) => {
-             // Xử lý texture key. Fallback về S1_Ball nếu thiếu
-             let key = def.textureKey;
-
              const x = GameUtils.pctX(this, def.baseX_pct);
              const y = GameUtils.pctY(this, def.baseY_pct);
-             
-             const img = this.add.image(x, y, key).setScale(def.baseScale || 0.5);
+             const img = this.add.image(x, y, def.textureKey).setScale(def.baseScale || 0.5);
              this.objectsToCount.push(img);
         });
 
-        // Load Target Text Config
         this.levelTarget = data.targetText;
-        
     }
 
-    // --- LOGIC MICROPHONE & VOICE RECORDER ---
+    private async runGameFlow() {
+        if (this.isSessionActive || this.isStartingSession) return;
+        this.isStartingSession = true;
 
-    private setupVoiceRecorder() {
-        this.voiceRecorder = new VoiceRecorder({
-            onRecordingStart: () => {
-                // Mute Audio Context hoặc Pause BGM
-                if (this.bgm && this.bgm.isPlaying) {
-                    this.bgm.pause();
-                }
-                AudioManager.stopAll();
-
-                // UI Update
-                this.isRecording = true;
-                console.log("Đang nghe... (Nói số lượng)");
-            },
-            onRecordingStop: (audioBlob, duration) => {
-                // Ignore short noise
-                if (duration < 500) {
-                    console.log("Audio too short (Noise), ignored.");
-                    return;
-                }
-
-                // Resume BGM
-                if (this.bgm && this.bgm.isPaused) {
-                    this.bgm.resume();
-                }
-
-                // UI Update
-                this.isRecording = false;
-                console.log("Đã ghi xong.");
-                this.btnPlayback.setVisible(true);
-
-                // Auto Submit Logic
-                // Use targetText from JSON config (Counting format: {start: x, end: y})
-                const targetText = this.levelTarget || { start: 1, end: 1 };
-                this.sendAudioToBackend(audioBlob, targetText);
-            },
-            onVolumeChange: (vol) => {
-                 // Scale Mic button based on volume
-                 const scale = 0.5 + (vol * 0.2);
-                 this.btnMic.setScale(Math.min(scale, 0.7)); 
-            },
-            onSilenceDetected: () => {
-                console.log("Auto-submit: Silence detected");
-                // VoiceRecorder will auto call stop(), which triggers onRecordingStop
-            },
-            onError: (err) => {
-                console.error("Mic Error:", err);
-                console.log("Không thể truy cập Mic");
-            }
-        });
-        
-        // Re-implement button logic with local flag ref
-        this.btnMic.on('pointerdown', () => {
-             this.resetIdle(); // Reset idle timer
-             if (this.isRecording) {
-                 this.voiceRecorder.stop();
-             } else {
-                 this.voiceRecorder.start();
-             }
-        });
-    }
-
-    // --- API LOGIC (Updated to use Hook) ---
-    
-    private async sendAudioToBackend(audioBlob: Blob, inputTarget: string | object) {
-        // --- CHẶN SPAM REQUEST ---
-        if (this.isProcessing) {
-             console.log("Đang xử lý request trước đó, vui lòng đợi...");
-             return;
+        // 1. Check Permission
+        const hasMicPermission = await this.voiceRecorder.checkPermission();
+        if (!hasMicPermission) {
+            console.log("Cần quyền Mic!");
+            this.isStartingSession = false;
+            return;
         }
 
-        if (!this.voiceHelper.sessionId) {
-             console.error("Lỗi: Không tìm thấy Session ID");
-             console.log("Vui lòng tải lại trang!");
-             return;
-        }
-        
-        this.isProcessing = true; // KHÓA REQUEST
-
-        // Log thông tin debug
-        console.log(`[Gửi Audio] SessionID: ${this.voiceHelper.sessionId} | Câu hỏi số: ${this.currentQuestionIndex + 1}`);
-        console.log("Đang gửi dữ liệu lên server để chấm điểm...");
-
-        this.btnPlayback.setVisible(false); // Ẩn nút nghe lại để tránh thao tác chồng chéo
-
+        // 2. Start Session (Counting Game)
+        console.log("Starting Session...");
         try {
-            // Xử lý Input Target: Đảm bảo format đúng cho API
-            let finalTargetText;
-            if (typeof inputTarget === 'string') {
-                finalTargetText = { text: inputTarget };
+            let sessionRes;
+            if (this.testMode) {
+                 sessionRes = { allowPlay: true, quotaRemaining: 999, index: 0 };
             } else {
-                finalTargetText = inputTarget;
+                 sessionRes = await this.voiceHelper.startEvaluation();
             }
 
-            // Gọi API thông qua Helper
-            // durationMs mặc định là 0 nếu không cần tính chính xác từ blob
+            if (!sessionRes.allowPlay) {
+                console.log(sessionRes.message);
+                this.isStartingSession = false;
+                return;
+            }
+
+            this.currentQuota = sessionRes.quotaRemaining;
+            this.currentQuestionIndex = sessionRes.index; // Resume index
+            
+            // Check boundary
+            if (this.currentQuestionIndex >= this.LEVEL_KEYS.length) {
+                this.currentQuestionIndex = 0; // Reset logic?
+            }
+
+            this.isSessionActive = true;
+            this.btnMic.setVisible(true);
+
+            // Sync visual level with session index
+            this.loadLevel(this.currentQuestionIndex);
+
+        } catch (err) {
+            console.error("Session Start Error:", err);
+        } finally {
+            this.isStartingSession = false;
+        }
+    }
+
+    private async sendAudioToBackend(audioBlob: Blob, inputTarget: string | object) {
+        if (this.isProcessing || !this.voiceHelper.sessionId) return;
+        
+        this.isProcessing = true;
+        
+        try {
+            const finalTargetText = (typeof inputTarget === 'string') ? { text: inputTarget } : inputTarget;
+            
+            // Submit (Index is 1-based for API)
             const result = await this.voiceHelper.submitAudio(
                 audioBlob,
                 finalTargetText,
@@ -418,205 +343,116 @@ export default class Scene1 extends Phaser.Scene {
                 0 
             );
             
-            // Xử lý kết quả trả về (Phát âm thanh, log)
             this.processResult(result);
-            this.submissionCount++; // Tăng biến đếm số lần nộp bài thành công
+            this.submissionCount++;
 
-            // Tăng index câu hỏi hiện tại để chuẩn bị cho màn tiếp theo
-            this.currentQuestionIndex++;
-            
-            // --- HIỂN THỊ ĐIỂM SỐ (POPUP) ---
+            // Show Popup
             const uiScene = this.scene.get(SceneKeys.UI) as any; 
             if (uiScene && uiScene.showScorePopup) {
                 uiScene.showScorePopup(result.score, result.feedback);
             }
 
-            // --- LOGIC CHUYỂN LEVEL SAU KHI HIỆN ĐIỂM ---
-            // Đợi 3 giây để người dùng xem điểm, sau đó tự động chuyển màn
-            if (this.currentQuestionIndex < this.totalQuestions) {
-                 this.time.delayedCall(3000, () => {
-                     // 1. Ẩn Popup điểm
-                     if (uiScene && uiScene.hideScorePopup) {
-                         uiScene.hideScorePopup();
-                     }
+            // Transition Logic
+            const nextIndex = this.currentQuestionIndex + 1;
+            this.time.delayedCall(3000, () => {
+                if (uiScene?.hideScorePopup) uiScene.hideScorePopup();
 
-                     // 2. Load màn chơi tiếp theo dựa trên Index
-                     if (this.currentQuestionIndex === 1) {
-                        this.loadLevel(DataKeys.LevelS2Config);
-                        console.log("--- Chuyển màn 2 ---");
-                     } else if (this.currentQuestionIndex === 2) {
-                        this.loadLevel(DataKeys.LevelS3Config);
-                        console.log("--- Chuyển màn 3 ---");
-                     }
-                 });
-            } else {
-                 // Đã hoàn thành tất cả câu hỏi -> Kết thúc Game
-                 this.time.delayedCall(3000, () => {
-                     if (uiScene && uiScene.hideScorePopup) {
-                         uiScene.hideScorePopup();
-                     }
-                     this.finishGameSession();
-                 });
-            }
+                if (nextIndex < this.LEVEL_KEYS.length) {
+                    this.currentQuestionIndex = nextIndex;
+                    this.loadLevel(this.currentQuestionIndex);
+                } else {
+                    this.finishGameSession();
+                }
+            });
 
         } catch (e: any) {
-            console.error("Lỗi khi chấm điểm:", e);
-            this.isProcessing = false; // MỞ KHÓA để người dùng thử lại
-
-            // Xử lý các trường hợp lỗi mạng cụ thể
-            if (e.message && (e.message.includes('Network') || e.message.includes('offline'))) {
-                this.handleOffline();
-            } else {
-                console.log("Có lỗi xảy ra trong quá trình chấm điểm. Vui lòng thử lại!");
-            }
+            console.error("Submit Error:", e);
+            this.isProcessing = false;
         }
     }
 
     private async finishGameSession(isUnload: boolean = false) {
-        // --- GUARD: Require at least 1 valid submission ---
-        if (this.submissionCount < 1) {
-             console.log("No submissions yet, skipping EndSession (Cleaner data)");
-             return;
-        }
-
-        console.log("Ending Session (Cleanup)...");
-        
-        if (!isUnload) {
-            console.log("Đang tổng kết điểm...");
-        }
-        
         try {
-            // REQUIRED: Gọi EndSession để nhận điểm cuối cùng (thang 10) và XÓA CACHE
-            // isUnload = true means we handle it as "UserAborted" conceptually or just silent cleanup
             const endRes = await this.voiceHelper.finishEvaluation(
-                this.totalQuestions,
-                isUnload // Truyền cờ isUserAborted nếu thoát ngang
+                this.LEVEL_KEYS.length,
+                isUnload
             );
 
-            if (!endRes) return;
+            if (!endRes || isUnload) return;
             
-            // Nếu là unload (đóng tab) thì ko cần update UI
-            if (isUnload) return;
-
-            console.log("Session Ended Result:", endRes);
-            
-            let msg = `TỔNG KẾT: ${endRes.finalScore}/10 điểm`;
-            if (endRes.quotaDeducted) msg += "\n(Đã trừ lượt)";
-            
-            console.log(msg);
-            
-            // Show Final Score Popup
             const uiScene = this.scene.get(SceneKeys.UI) as any;
-            if (uiScene && uiScene.showFinalScorePopup) {
+            if (uiScene?.showFinalScorePopup) {
                 uiScene.showFinalScorePopup(endRes.finalScore);
             }
 
-            // Chuyển sang EndGameScene sau khi xem điểm (ví dụ 4s)
             this.time.delayedCall(4000, () => {
                  this.scene.stop(SceneKeys.UI);
-                 this.scene.start('EndGameScene');
+                 this.scene.start(SceneKeys.EndGame);
             });
 
         } catch (e) {
             console.error("End Session Error", e);
-            if (!isUnload) console.log("Lỗi tổng kết!");
         }
     }
 
     private processResult(result: any) {
-        // Logic xử lý kết quả trả về
-        console.log("API Result:", result);
-        
-        // Popup call moved to sendAudioToBackend to capture 'this' context better with callbacks
-        // or we can remove this block if it's redundant. 
-        // Logic was moved up. We just keep SFX here.
-
-        // SFX
-        if (result.score >= 60) { 
-            AudioManager.play("sfx-correct"); 
-        } else {
-             AudioManager.play("sfx-wrong");
-        }
+        if (result.score >= 60) AudioManager.play("sfx-correct"); 
+        else AudioManager.play("sfx-wrong");
     }
 
+    update(time: number, delta: number) {
+        if (this.idleManager) this.idleManager.update(delta);
+    }
 
-    // --- IDLE LOGIC ---
+    // =================================================================
+    // PHẦN 4: HƯỚNG DẪN & GỢI Ý (TUTORIAL & HINT)
+    // =================================================================
 
     private setupIdleManager() {
-        this.idleManager = new IdleManager(10000, () => {
-             this.handleIdle();
-        });
-
-        // Tạo tay hướng dẫn (ẩn ban đầu)
-        // Dùng TextureKeys.HandHint đã check trong Preload
-        this.handCursor = this.add.image(0, 0, TextureKeys.HandHint)
-             .setVisible(false)
-             .setDepth(100);
+        this.idleManager = new IdleManager(GameConstants.IDLE.THRESHOLD, () => this.handleIdle());
+        this.handCursor = this.add.image(0, 0, TextureKeys.HandHint).setVisible(false).setDepth(100);
     }
 
     private handleIdle() {
-        if (!this.btnMic) return;
+        if (!this.btnMic || !this.btnMic.visible) return;
         
-        console.log("User Idle -> Show Hint");
-
-        // 1. Play Audio Hint
         AudioManager.play('hint');
-
-        // 2. Show Hand pointing to Mic
         const targetX = this.btnMic.x;
         const targetY = this.btnMic.y;
 
-        this.handCursor.setPosition(targetX + 50, targetY + 50); // Xuất hiện bên cạnh
-        this.handCursor.setVisible(true);
+        this.handCursor.setPosition(targetX + 100, targetY + 100).setVisible(true).setScale(1);
 
-        // Tween chỉ tay
         if (this.handTween) this.handTween.stop();
-        
         this.handTween = this.tweens.add({
             targets: this.handCursor,
-            x: targetX,
-            y: targetY,
-            duration: 800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+            scale: 1.2,
+            duration: 800, 
+            yoyo: true, 
+            repeat: 2, 
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                this.handCursor.setVisible(false);
+                this.handCursor.setScale(1);
+            }
         });
     }
 
     private resetIdle() {
-        if (this.idleManager) {
-            this.idleManager.reset();
-        }
+        if (this.idleManager) this.idleManager.reset();
         this.hideIdleHint();
     }
 
     private hideIdleHint() {
-        if (this.handCursor) {
-            this.handCursor.setVisible(false);
-        }
-        if (this.handTween) {
-            this.handTween.stop();
-        }
+        if (this.handCursor) this.handCursor.setVisible(false);
+        if (this.handTween) this.handTween.stop();
         AudioManager.stopSound('hint'); 
-    }
-
-    update(time: number, delta: number) {
-        if (this.idleManager) {
-            this.idleManager.update(delta);
-        }
     }
 
     private playIntroSequence() {
         this.isIntroActive = true;
-        // Start Idle Manager khi intro bắt đầu hoặc sau intro?
-        // Thường là sau khi intro nói xong, hoặc bắt đầu từ đây nhưng user chưa interact thì chưa tính.
-        // User phải interact lần đầu (intro) rồi mới tính idle.
-        // Nhưng logic Tap-to-start đã handle việc user interact.
-        
         if (this.idleManager) this.idleManager.start();
 
         playVoiceLocked(null, 'voice_intro_s2');
-        // Đợi 1 chút rồi chạy animation tay hướng dẫn
         this.time.delayedCall(GameConstants.SCENE1.TIMING.INTRO_DELAY, () => {
             if (this.isIntroActive) this.runHandTutorial();
         });

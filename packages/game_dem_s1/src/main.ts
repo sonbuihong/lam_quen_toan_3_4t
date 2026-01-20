@@ -52,7 +52,7 @@ import { game } from "@iruka-edu/mini-game-sdk";
         const MAX_UI_SCALE = 1;
         const scaleFromViewport = Math.min(w, h) / 720;
         const scale = Math.min(Math.max(scaleFromViewport, MIN_UI_SCALE), MAX_UI_SCALE);
-        const baseSize = 100;
+        const baseSize = 115;
         const newSize = baseSize * scale;
 
         resetBtn.style.width = `${newSize}px`;

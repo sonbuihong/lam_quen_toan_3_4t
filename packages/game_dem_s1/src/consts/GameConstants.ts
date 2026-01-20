@@ -8,13 +8,7 @@ export const GameConstants = {
     // =========================================
     // CẤU HÌNH CHUNG (SYSTEM)
     // =========================================
-    // PALETTE_DATA: [
-    //     { key: TextureKeys.BtnS1Green1, color: 0x5EA455 },// PaleGreen
-    //     { key: TextureKeys.BtnS1Green2, color: 0xB2CB4B }, // LimeGreen
-    //     { key: TextureKeys.BtnS1White, color: 0xFFFFFF },
-    //     { key: TextureKeys.BtnS1Green4, color: 0x387440 }, // DarkGreen
-    //     { key: TextureKeys.BtnS1Cream, color: 0xFDFCDC },    
-    // ],
+    
     DEBUG_MODE: true, // Set false khi release
     IDLE: {
         /** Thời gian chờ trước khi hiện gợi ý (ms). 10000 = 10 giây */
@@ -38,13 +32,13 @@ export const GameConstants = {
         /** Ngưỡng để coi là "đang nói" (0.0 - 1.0) */
         SILENCE_THRESHOLD: 0.04,
         /** Thời gian im lặng (ms) -> Tự động dừng */
-        SILENCE_DURATION: 1500,
+        SILENCE_DURATION: 2000,
         /** Thời gian ghi âm tối đa (ms) -> Tự động dừng */
-        MAX_RECORD_DURATION: 10000, 
+        MAX_RECORD_DURATION: 5000, 
     },
 
     // =========================================
-    // SCENE 1: TÔ MÀU (CROCODILE)
+    // SCENE 1: 
     // =========================================
     SCENE1: {
         UI: {
@@ -84,14 +78,9 @@ export const GameConstants = {
     },
 
     // =========================================
-    // CẤU HÌNH VẼ (PAINT MANAGER)
+    // CẤU HÌNH 
     // =========================================
-    PAINT: {
-        BRUSH_SIZE: 100,
-        /** Tỉ lệ tô màu để tính là hoàn thành (0.90 = 90%) */
-        WIN_PERCENT: 0.90,
-        DEFAULT_COLOR: 0x5EA455
-    },
+    
 
     // =========================================
     // END GAME SCENE

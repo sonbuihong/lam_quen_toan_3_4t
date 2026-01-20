@@ -23,6 +23,7 @@ export enum TextureKeys {
     Dice = 'dice',
     // --- Scene 1 (Voice1) ---
     Mic = 'mic',
+    Loa = 'loa',
 
     Title1 = 'title',
     S1_Ball = 'ball',
