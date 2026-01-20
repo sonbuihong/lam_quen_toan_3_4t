@@ -35,24 +35,17 @@ export default class UIScene extends Phaser.Scene {
         let bannerKey = TextureKeys.S1_Banner;
         let titleKey = TextureKeys.Title1;
         // Hiển thị Banner và Text
-        this.bannerImage = this.add.image(cx, bannerY, bannerKey).setScale(0.7).setOrigin(0.5, -0.1);
+        this.bannerImage = this.add.image(cx, bannerY, bannerKey).setScale(0.8,0.7).setOrigin(0.5, -0.1);
         
         // Title
         this.add.image(cx, bannerY, titleKey)
-            .setOrigin(0.5, -0.75)
-            .setScale(1);
-        
-        // Decor
-        const decorX = GameUtils.pctX(this, UI.DECOR_X);
-        const decorY = GameUtils.pctY(this, UI.DECOR_Y);
-        this.add.image(decorX, decorY, TextureKeys.Decor)
-            .setOrigin(0.5, -0.5)
+            .setOrigin(0.5, -0.6)
             .setScale(1);
         
         // Tạo bàn tay gợi ý (ẩn đi, set depth cao nhất để đè lên mọi thứ)
         this.handHint = this.add
             .image(0, 0, TextureKeys.HandHint)
-            .setDepth(2000) // Đảm bảo nó nằm trên các phần tử UI khác
+            .setDepth(2000) 
             .setAlpha(0)
             .setScale(0.7);
     }

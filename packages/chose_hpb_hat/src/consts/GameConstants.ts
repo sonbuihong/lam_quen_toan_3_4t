@@ -8,13 +8,15 @@ export const GameConstants = {
     // =========================================
     // CẤU HÌNH CHUNG (SYSTEM)
     // =========================================
-    // PALETTE_DATA: [
-    //     { key: TextureKeys.BtnS1Green1, color: 0x5EA455 },// PaleGreen
-    //     { key: TextureKeys.BtnS1Green2, color: 0xB2CB4B }, // LimeGreen
-    //     { key: TextureKeys.BtnS1White, color: 0xFFFFFF },
-    //     { key: TextureKeys.BtnS1Green4, color: 0x387440 }, // DarkGreen
-    //     { key: TextureKeys.BtnS1Cream, color: 0xFDFCDC },    
-    // ],
+    PALETTE_DATA: [
+        { key: TextureKeys.BtnS1_1, color: 0xE05136 },
+        { key: TextureKeys.BtnS1_2, color: 0xFFE007 },
+        { key: TextureKeys.BtnS1_3, color: 0x499343 },
+        { key: TextureKeys.BtnS1_4, color: 0x539BD7 }, 
+        { key: TextureKeys.BtnS1_5, color: 0xFDAB12 },
+        { key: TextureKeys.BtnS1_6, color: 0xE97090 },
+        { key: TextureKeys.BtnS1_7, color: 0x000000 },    
+    ],
     DEBUG_MODE: true, // Set false khi release
     IDLE: {
         /** Thời gian chờ trước khi hiện gợi ý (ms). 10000 = 10 giây */
@@ -44,9 +46,61 @@ export const GameConstants = {
     // },
 
     // =========================================
-    // SCENE 1: TÔ MÀU (CROCODILE)
+    // CẤU HÌNH SCENE
     // =========================================
     SCENE1: {
+        UI: {
+            /** Vị trí Y của Banner (Tỉ lệ 0.0 - 1.0 so với chiều cao màn hình) */
+            BANNER_Y: 0.01,
+            /** Khoảng cách từ đáy Banner xuống đỉnh Bảng (Tỉ lệ màn hình) */
+            BOARD_OFFSET: 0.03,
+            /** Khoảng cách lề trái/phải của 2 bảng (Tỉ lệ màn hình) */
+            BOARD_MARGIN_X: 0.01,
+            /** Vị trí Mưa: Nằm ở 45% chiều cao của cái Bảng */
+            ILLUSTRATION_OFFSET: 0.45,
+            /** Vị trí Thơ: Cách đáy Mưa 17% màn hình */
+            POEM_OFFSET: 0.05,
+
+            /** Icon O lệch trái 13% chiều rộng bảng */
+            ICON_O_X: 0.13,
+            /** Icon O lệch xuống 6% chiều cao màn hình */
+            ICON_O_Y: 0.05,
+
+            /** Item lệch trục X so với tâm bảng (Tỉ lệ chiều rộng bảng) */
+            ITEM_OFFSET_X_1: -0.17,
+            ITEM_OFFSET_X_2: -0.17,
+            ITEM_OFFSET_X_3: 0.2,
+            /** Item lệch trục Y so với tâm bảng (Tỉ lệ chiều rộng bảng) */
+            ITEM_OFFSET_Y_1: -0.3,
+            ITEM_OFFSET_Y_2: 0.3,
+            ITEM_OFFSET_Y_3: 0,
+        },
+        ANIM: {
+            /** Thời gian vật nhấp nhô (Floating) (ms) */
+            FLOAT: 1500,
+            /** Thời gian bài thơ nhấp nhô (ms) */
+            POEM_FLOAT: 1200,
+            /** Thời gian icon lắc lư (ms) */
+            ICON_SHAKE: 400,
+            /** Thời gian rung lắc khi chọn Sai (ms) */
+            WRONG_SHAKE: 80,
+            /** Thời gian hiện Popup thắng (ms) */
+            WIN_POPUP: 600,
+        },
+        TIMING: {
+            /** Delay sau khi đọc xong câu đố mới bắt đầu tính Idle (ms) */
+            DELAY_IDLE: 1000,
+            /** Delay chuyển sang Scene 2 (ms) */
+            DELAY_NEXT: 1000,
+            /** Chờ đọc xong voice "Cái ô" mới phát SFX vỗ tay (ms) */
+            DELAY_CORRECT_SFX: 1000,
+        }
+    },
+
+    // =========================================
+    // SCENE 2: TÔ MÀU 
+    // =========================================
+    SCENE2: {
         UI: {
             // BANNER
             BANNER_Y: 0.001,
@@ -86,12 +140,12 @@ export const GameConstants = {
     // =========================================
     // CẤU HÌNH VẼ (PAINT MANAGER)
     // =========================================
-    // PAINT: {
-    //     BRUSH_SIZE: 100,
-    //     /** Tỉ lệ tô màu để tính là hoàn thành (0.90 = 90%) */
-    //     WIN_PERCENT: 0.90,
-    //     DEFAULT_COLOR: 0x5EA455
-    // },
+    PAINT: {
+        BRUSH_SIZE: 100,
+        /** Tỉ lệ tô màu để tính là hoàn thành (0.90 = 90%) */
+        WIN_PERCENT: 0.90,
+        DEFAULT_COLOR: 0x5EA455
+    },
 
     // =========================================
     // END GAME SCENE

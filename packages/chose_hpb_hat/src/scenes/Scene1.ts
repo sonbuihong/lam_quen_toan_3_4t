@@ -114,7 +114,7 @@ export default class Scene1 extends Phaser.Scene {
     // =================================================================
 
     private createUI() {
-        const UI = GameConstants.SCENE1.UI;
+        const UI1 = GameConstants.SCENE1.UI;
         const cx = GameUtils.pctX(this, 0.5);
         
         // Banner Config
@@ -123,7 +123,7 @@ export default class Scene1 extends Phaser.Scene {
         if (bannerTexture && bannerTexture.key !== '__MISSING') {
             bannerHeight = bannerTexture.getSourceImage().height * 0.7;
         }
-        const boardY = bannerHeight + GameUtils.pctY(this, UI.BOARD_OFFSET);
+        const boardY = bannerHeight + GameUtils.pctY(this, UI1.BOARD_OFFSET);
         
         const scl = [1, 0.72];
         
@@ -133,7 +133,7 @@ export default class Scene1 extends Phaser.Scene {
             .setScale(scl[0], scl[1])
             .setDepth(0); // Background level
             
-        board.displayWidth = GameUtils.getW(this) * 0.95;
+        board.displayWidth = GameUtils.getW(this) * 0.93;
         // Giữ tỉ lệ đơn giản, có thể chỉnh lại scale sau
         
         // Các phần tử UI khác (Số, Xúc xắc - giữ như cũ để làm mẫu)

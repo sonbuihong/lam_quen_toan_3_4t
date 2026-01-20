@@ -24,6 +24,15 @@ export enum TextureKeys {
     Hat = 'hat',
     Ans1 = 'ans1',
     Ans2 = 'ans2',
+
+    // các nút màu cho bảng chọn màu
+    BtnS1_1 = 's1_btn_1',
+    BtnS1_2 = 's1_btn_2',
+    BtnS1_3 = 's1_btn_3',
+    BtnS1_4 = 's1_btn_4',
+    BtnS1_5 = 's1_btn_5',
+    BtnS1_6 = 's1_btn_6',
+    BtnS1_7 = 's1_btn_7',
     
 
     // --- End Game ---

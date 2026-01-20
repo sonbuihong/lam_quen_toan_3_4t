@@ -7,14 +7,14 @@
         {
             "textureKey": "hat",
             "baseX_pct": 0.35,
-            "baseY_pct": 0.5,
-            "baseScale": 0.5
+            "baseY_pct": 0.45,
+            "baseScale": 0.8
         },
         {
             "textureKey": "hat",
             "baseX_pct": 0.65,
-            "baseY_pct": 0.5,
-            "baseScale": 0.5
+            "baseY_pct": 0.45,
+            "baseScale": 0.8
         }
     ]
 }
