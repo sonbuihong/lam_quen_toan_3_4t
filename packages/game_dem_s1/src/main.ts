@@ -89,6 +89,12 @@ import { game } from "@iruka-edu/mini-game-sdk";
                 }
 
                 if (window.gameScene && window.gameScene.scene) {
+                     // Hide Popup if exists in UIScene
+                     const uiScene = window.gameScene.scene.get('UIScene');
+                     if (uiScene && (uiScene as any).hideScorePopup) {
+                         (uiScene as any).hideScorePopup();
+                     }
+
                     window.gameScene.scene.stop();
                     window.gameScene.scene.start('Scene1', { isRestart: true }); 
                 } else {

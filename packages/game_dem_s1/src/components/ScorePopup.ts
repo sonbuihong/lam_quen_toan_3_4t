@@ -21,29 +21,31 @@ export default class ScorePopup extends Phaser.GameObjects.Container {
         this.bg = this.scene.add.image(0, 0, TextureKeys.S1_Board).setScale(0.35);
         
         // 2. Title
-        this.popupTitle = this.scene.add.text(0, -120, "KẾT QUẢ", {
+        this.popupTitle = this.scene.add.text(0, -60, "KẾT QUẢ", {
             fontSize: '50px',
             color: '#000000',
             fontFamily: 'Arial',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center'
         }).setOrigin(0.5);
 
         // 3. Score
-        this.popupScore = this.scene.add.text(0, -40, "0", {
+        this.popupScore = this.scene.add.text(0, 45, "0", {
             fontSize: '80px',
             color: '#d32f2f',
             fontFamily: 'Arial',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center'
         }).setOrigin(0.5);
 
-        // 4. Feedback
-        this.popupFeedback = this.scene.add.text(0, 40, "", {
+        // 4. Feedback (Hidden/Unused for now)
+        this.popupFeedback = this.scene.add.text(0, 90, "", {
             fontSize: '30px',
             color: '#333333',
             fontFamily: 'Arial',
             wordWrap: { width: 400 },
             align: 'center'
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setVisible(false);
 
         this.add([this.bg, this.popupTitle, this.popupScore, this.popupFeedback]);
     }
@@ -64,7 +66,8 @@ export default class ScorePopup extends Phaser.GameObjects.Container {
         }
 
         this.popupScore.setText(`${roundedScore}`);
-        this.popupFeedback.setText(feedback);
+        // this.popupFeedback.setText(feedback);
+        console.log("feedback", feedback);
         
         this._animateShow();
     }
@@ -76,13 +79,13 @@ export default class ScorePopup extends Phaser.GameObjects.Container {
         this.popupScore.setText(`${finalScore}/10`);
         this.popupScore.setColor('#1565c0');
 
-        let msg = "";
-        if (finalScore >= 6) {
-            msg = "Chúc mừng bé hoàn thành bài học!";
-        } else {
-            msg = "Bé hãy luyện tập thêm nhé!";
-        }
-        this.popupFeedback.setText(msg);
+        // let msg = "";
+        // if (finalScore >= 6) {
+        //     msg = "Chúc mừng bé hoàn thành bài học!";
+        // } else {
+        //     msg = "Bé hãy luyện tập thêm nhé!";
+        // }
+        // this.popupFeedback.setText(msg);
 
         // Hide normal game buttons for final screen (or change logic if needed)
         // this.btnReplay.setVisible(false);

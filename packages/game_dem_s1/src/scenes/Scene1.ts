@@ -34,6 +34,7 @@ export default class Scene1 extends Phaser.Scene {
     private submissionCount: number = 0; // Check valid submissions
     private isRecording: boolean = false;
     private testMode: boolean = true; // Bật Test Mode để debug
+    private isRestart: boolean = false;
 
     // Voice Hook
     // Explicitly using COUNTING for clarity, though hook defaults to it.
@@ -59,7 +60,7 @@ export default class Scene1 extends Phaser.Scene {
         super(SceneKeys.Scene1);
     }
 
-    init() {
+    init(data?: any) {
         this.objectsToCount = [];
         this.currentQuestionIndex = 0;
         this.isProcessing = false;
@@ -67,12 +68,17 @@ export default class Scene1 extends Phaser.Scene {
         this.isSessionActive = false;
         this.isStartingSession = false;
         this.isRecording = false;
+        this.isRestart = data?.isRestart || false;
         resetVoiceState();
     }
 
     create() {
         window.gameScene = this;
         setGameSceneReference(this);
+
+        // Attempt to resume audio immediately (works if restart or previously interacted)
+        this.resumeAudioContext();
+
         showGameButtons();
 
         // 1. Setup System
@@ -99,7 +105,7 @@ export default class Scene1 extends Phaser.Scene {
     }
 
     private handleIntroLogic() {
-         if (Scene1.hasInteracted) {
+         if (Scene1.hasInteracted || this.isRestart) {
              this.resumeAudioContext();
              setTimeout(() => {
                 this.playIntroSequence();
@@ -173,6 +179,8 @@ export default class Scene1 extends Phaser.Scene {
                 AudioManager.stopAll();
                 this.isRecording = true;
                 this.tweens.add({ targets: this.btnMic, scale: 1.2, duration: 200, yoyo: true, repeat: -1 });
+                // Stop idle timer while recording
+                if (this.idleManager) this.idleManager.stop();
             },
             onRecordingStop: (audioBlob, duration) => {
                 if (this.bgm && this.bgm.isPaused) this.bgm.resume();
@@ -184,8 +192,18 @@ export default class Scene1 extends Phaser.Scene {
                 
                 if (duration < GameConstants.VOICE.MIN_DURATION) {
                     console.log(`%c[Voice] Noise ignored (Too short: ${duration}ms < ${GameConstants.VOICE.MIN_DURATION}ms)`, "color: orange");
+                    
+                    // Feedback: Bấm lại để nói lại
+                    AudioManager.play('sfx-wrong');
+                    console.log("[Voice] Vui lòng bấm mic và nói lại!");
+
+                    // Noise: Restart idle timer immediately
+                    if (this.idleManager) this.idleManager.start();
                     return;
                 }
+                
+                // Valid recording: LOCK INTERACTION IMMEDIATELY
+                this.isProcessing = true;
                 
                 // Auto Submit
                 const targetText = this.levelTarget || { start: 1, end: 1 };
@@ -229,6 +247,9 @@ export default class Scene1 extends Phaser.Scene {
              .setScale(1).setInteractive().setVisible(false);
 
         this.btnMic.on('pointerdown', () => {
+             // Block interaction if processing result
+             if (this.isProcessing) return;
+
              this.resetIdle(); 
              if (this.isRecording) {
                  this.voiceRecorder.stop(); 
@@ -290,12 +311,9 @@ export default class Scene1 extends Phaser.Scene {
         console.log("Starting Session...");
         try {
             let sessionRes;
-            if (this.testMode) {
-                 sessionRes = { allowPlay: true, quotaRemaining: 999, index: 0 };
-                 this.voiceHelper.setSessionId("TEST_SESSION_ID"); // Fake ID for local testing
-            } else {
-                 sessionRes = await this.voiceHelper.startEvaluation();
-            }
+            // Always call startEvaluation regardless of testMode. 
+            // The hook handles passing the testmode flag to the backend.
+            sessionRes = await this.voiceHelper.startEvaluation();
 
             if (!sessionRes.allowPlay) {
                 console.log(sessionRes.message);
@@ -325,10 +343,12 @@ export default class Scene1 extends Phaser.Scene {
     }
 
     private async sendAudioToBackend(audioBlob: Blob, inputTarget: string | object) {
-        if (this.isProcessing) {
-            console.warn("[Voice] Submission ignored: Waiting for previous request.");
-            return;
-        }
+        // Guard removed: calling function (onRecordingStop) now handles the lock
+        // if (this.isProcessing) {
+        //     console.warn("[Voice] Submission ignored: Waiting for previous request.");
+        //     return;
+        // }
+        
         if (!this.voiceHelper.sessionId) {
             console.error("[Voice] Submission failed: No Session ID.");
             return;
@@ -337,7 +357,7 @@ export default class Scene1 extends Phaser.Scene {
         this.isProcessing = true;
         
         try {
-            console.log("[Voice] Sending audio to backend...");
+            console.log("[Voice] Đang gửi Audio lên Server... (Vui lòng đợi kết quả)");
             const finalTargetText = (typeof inputTarget === 'string') ? { text: inputTarget } : inputTarget;
             
             // Submit (Index is 1-based for API)
@@ -353,6 +373,8 @@ export default class Scene1 extends Phaser.Scene {
             if (!result) {
                 console.error("[Voice] No result from backend!");
                 this.isProcessing = false;
+                // Restart idle if no result
+                if (this.idleManager) this.idleManager.start();
                 return;
             }
 
@@ -375,6 +397,8 @@ export default class Scene1 extends Phaser.Scene {
                 if (nextIndex < this.LEVEL_KEYS.length) {
                     this.currentQuestionIndex = nextIndex;
                     this.loadLevel(this.currentQuestionIndex);
+                    // Next level loaded, restart idle timer
+                    if (this.idleManager) this.idleManager.start();
                 } else {
                     this.finishGameSession();
                 }
@@ -383,6 +407,8 @@ export default class Scene1 extends Phaser.Scene {
         } catch (e: any) {
             console.error("Submit Error:", e);
             this.isProcessing = false;
+            // Error occurred, restart idle timer
+            if (this.idleManager) this.idleManager.start();
         }
     }
 
@@ -431,6 +457,9 @@ export default class Scene1 extends Phaser.Scene {
     private handleIdle() {
         if (!this.btnMic || !this.btnMic.visible) return;
         
+        // PAUSE idle timer while showing hint
+        if (this.idleManager) this.idleManager.stop();
+
         AudioManager.play('hint');
         const targetX = this.btnMic.x;
         const targetY = this.btnMic.y;
@@ -448,6 +477,9 @@ export default class Scene1 extends Phaser.Scene {
             onComplete: () => {
                 this.handCursor.setVisible(false);
                 this.handCursor.setScale(1);
+
+                // RESUME idle timer after hint finishes
+                if (this.idleManager) this.idleManager.start();
             }
         });
     }

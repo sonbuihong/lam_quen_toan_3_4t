@@ -100,20 +100,6 @@ export function useVoiceEvaluation(defaultProps: UseVoiceEvaluationProps = {}) {
         error = null;
         
         try {
-            // --- MOCK FOR TEST MODE ---
-            // if (config.testmode) {
-            //     console.log("Simulating Submit in Test Mode...");
-            //     await new Promise(r => setTimeout(r, 1000)); // Fake network delay
-                
-            //     const mockRes: SubmitAnswerResponse = {
-            //         score: 95,
-            //         feedback: "Tuyệt vời (Test Mode)",
-            //         attitude_level: "neutral" 
-            //     };
-            //     currentScore = mockRes.score;
-            //     return mockRes;
-            // }
-
             // Convert Blob -> File object
             const audioFile = new File([audioBlob], "recording.wav", { type: "audio/wav" });
 
