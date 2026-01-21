@@ -58,10 +58,6 @@ export default class UIScene extends Phaser.Scene {
                 .setScale(1);
         }
 
-        this.add.image(cx * 1.79, bannerY + 290, TextureKeys.Decor).setScale(1).setOrigin(0.5, 0.5);
-        this.add.image(cx * 0.125, bannerY + 180, TextureKeys.Number).setScale(1).setOrigin(0.5, -0.1);
-        this.add.image(cx * 0.255, bannerY + 170, TextureKeys.Dice).setScale(1).setOrigin(0.5, -0.1);
-        
         // Tạo bàn tay gợi ý (ẩn đi, set depth cao nhất để đè lên mọi thứ)
         this.handHint = this.add
             .image(0, 0, TextureKeys.HandHint)

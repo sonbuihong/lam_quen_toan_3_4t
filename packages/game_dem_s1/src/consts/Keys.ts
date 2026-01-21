@@ -33,6 +33,13 @@ export enum TextureKeys {
     S1_Ball = 'ball',
     S2_Ball = 'ball2',
     S3_Car = 'car',
+
+    //--- SpriteSheet ---
+    Sprite1 = 'sprite1',
+    Sprite2 = 'sprite2',
+
+    // --- Score Popup ---
+    ScorePopup = 'score_popup',
     
 
     // --- End Game ---

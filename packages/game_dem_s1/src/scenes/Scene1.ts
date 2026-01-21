@@ -56,6 +56,7 @@ export default class Scene1 extends Phaser.Scene {
     private tutorialTimer?: Phaser.Time.TimerEvent; // Timer cho vòng lặp hướng dẫn
     private introTimer?: Phaser.Time.TimerEvent; // Timer cho chuỗi intro
     private radiatingCircles: Phaser.GameObjects.Arc[] = [];
+    private hero!: Phaser.GameObjects.Sprite;
 
     constructor() {
         super(SceneKeys.Scene1);
@@ -181,6 +182,13 @@ export default class Scene1 extends Phaser.Scene {
                 this.isRecording = true;
                 this.tweens.add({ targets: this.btnMic, scale: 1.2, duration: 200, yoyo: true, repeat: -1 });
                 GameUtils.startRadiatingEffect(this, this.btnMic, this.radiatingCircles);
+
+                // Show Hero
+                if (this.hero) {
+                    this.hero.setVisible(true);
+                    this.hero.play('listen_anim');
+                }
+
                 // Stop idle timer while recording
                 if (this.idleManager) this.idleManager.stop();
             },
@@ -190,6 +198,12 @@ export default class Scene1 extends Phaser.Scene {
                 this.btnMic.setScale(1); 
                 this.tweens.killTweensOf(this.btnMic);
                 GameUtils.stopRadiatingEffect(this, this.radiatingCircles);
+
+                // Hide Hero
+                if (this.hero) {
+                    this.hero.setVisible(false);
+                    this.hero.stop();
+                }
 
                 console.log(`[Voice] Recorded Duration: ${duration}ms (Threshold: ${GameConstants.VOICE.MIN_DURATION}ms)`);
                 
@@ -233,7 +247,7 @@ export default class Scene1 extends Phaser.Scene {
     private createUI() {
         const UI = GameConstants.SCENE1.UI;
         const cx = GameUtils.pctX(this, 0.5);
-        const scl = [1, 0.72]; 
+        const scl = [1, 0.72];
 
         // 1. Logic BANNER & BOARD
         const bannerTexture = this.textures.get(TextureKeys.S1_Banner);
@@ -244,8 +258,8 @@ export default class Scene1 extends Phaser.Scene {
         const boardY = bannerHeight + GameUtils.pctY(this, UI.BOARD_OFFSET);
         
         const board = this.add.image(cx, boardY, TextureKeys.S1_Board)
-            .setOrigin(0.5, 0).setScale(scl[0], scl[1]).setDepth(0);
-        board.displayWidth = GameUtils.getW(this) * 0.93;
+            .setOrigin(0.5, 0).setScale(0.7).setDepth(0);
+        // board.displayWidth = GameUtils.getW(this) * 0.93;
             
         // 2. Nút Loa
         // this.add.image(cx * 1.77, boardY * 6.5, TextureKeys.Loa).setOrigin(0.5).setScale(1);
@@ -267,8 +281,43 @@ export default class Scene1 extends Phaser.Scene {
         });
 
         // 4. Nút nghe lại
-        this.btnPlayback = this.add.image(cx + 100, GameUtils.pctY(this, 0.85), TextureKeys.Mic)
-             .setScale(0.7).setInteractive().setVisible(false);
+        // this.btnPlayback = this.add.image(cx + 100, GameUtils.pctY(this, 0.85), TextureKeys.Loa)
+        //      .setScale(0.7).setInteractive().setVisible(false);
+
+        // 5. Sprite nghe voice
+        // Tạo animation (thường làm 1 lần trong create)
+        if (!this.anims.exists('listen_anim')) {
+            this.anims.create({
+                key: 'listen_anim',
+                frames: this.anims.generateFrameNumbers(TextureKeys.Sprite1, { start: 0, end: 6 }),
+                frameRate: 10,
+                repeat: -1 // Lặp vô tận
+            });
+        }
+        // Gán animation cho sprite
+        const bRight = board.x + (board.displayWidth * 0.5);
+        const bLeft = board.x - (board.displayWidth * 0.5);
+        const bBottom = board.y + board.displayHeight;
+        const bTop = board.y; 
+
+        // Decor: Góc trên bên phải (Top-Right) -> Neo vào góc trên phải (1, 0)
+        this.add.image(bRight - 20, bTop + 20, TextureKeys.Decor)
+            .setOrigin(1, 0);
+
+        // Number: Góc trên bên trái (Top-Left) -> Neo vào góc trên trái (0, 0)
+        const numberIcon = this.add.image(bLeft + 20, bTop + 20, TextureKeys.Number)
+            .setOrigin(0, 0);
+
+        // Dice: Cách Number 10px về phía sau (bên phải)
+        // Neo góc trên trái (0, 0) để dễ tính từ mép phải của Number
+        this.add.image(numberIcon.x + numberIcon.width + 30, bTop + 20, TextureKeys.Dice)
+            .setOrigin(0, 0);
+        
+        
+        // DebugHero
+        this.hero = this.add.sprite(bRight - 20, bBottom - 20, TextureKeys.Sprite1);
+        this.hero.setOrigin(1, 1).setScale(0.7).setVisible(false); 
+        this.hero.play('listen_anim');
     }
 
     // =================================================================

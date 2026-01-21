@@ -56,13 +56,14 @@ export default class ScorePopup extends Phaser.GameObjects.Container {
 
         // Set Text & Color based on Score
         if (isPass) {
-            this.popupTitle.setText("BÉ GIỎI QUÁ!");
-            this.popupTitle.setColor('#2e7d32'); // Green
-            this.popupScore.setColor('#2e7d32');
+
+            // this.popupTitle.setText("BÉ GIỎI QUÁ!");
+            // this.popupTitle.setColor('#2e7d32'); // Green
+            // this.popupScore.setColor('#2e7d32');
         } else {
-            this.popupTitle.setText("BÉ CỐ GẮNG HƠN NHÉ!");
-            this.popupTitle.setColor('#d32f2f'); // Red
-            this.popupScore.setColor('#d32f2f');
+            // this.popupTitle.setText("BÉ CỐ GẮNG HƠN NHÉ!");
+            // this.popupTitle.setColor('#d32f2f'); // Red
+            // this.popupScore.setColor('#d32f2f');
         }
 
         this.popupScore.setText(`${roundedScore}`);
@@ -73,10 +74,26 @@ export default class ScorePopup extends Phaser.GameObjects.Container {
     }
 
     public showProcessing() {
-        this.popupTitle.setText("ĐANG CHẤM ĐIỂM...");
-        this.popupTitle.setColor('#f57c00'); // Orange for processing
-        this.popupScore.setText("...");
-        this.popupScore.setColor('#f57c00');
+        // this.popupTitle.setText("ĐANG CHẤM ĐIỂM...");
+        // this.popupTitle.setColor('#f57c00'); // Orange for processing
+        // this.popupScore.setText("...");
+        // this.popupScore.setColor('#f57c00');
+
+        if (!this.scene.anims.exists('chamdiem')) {
+            this.scene.anims.create({
+                key: 'chamdiem',
+                frames: this.scene.anims.generateFrameNumbers(TextureKeys.Sprite2, {
+                    start: 0,
+                    end: 6
+                }),
+                frameRate: 10,
+                repeat: -1
+            });
+        }
+
+        const chamdiem = this.scene.add.sprite(0, 0, TextureKeys.Sprite2);
+        chamdiem.play('chamdiem');
+        this.add(chamdiem);
 
         this._animateShow();
     }

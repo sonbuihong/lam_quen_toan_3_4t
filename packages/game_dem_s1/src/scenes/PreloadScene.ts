@@ -32,6 +32,19 @@ export default class PreloadScene extends Phaser.Scene {
         // --- Scene 1 Assets 3 ---
         this.load.image(TextureKeys.S3_Car, 'assets/images/S1/car.png');
 
+        // --- SpriteSheet ---
+        this.load.spritesheet(TextureKeys.Sprite1, 'assets/images/sprite/spritesheet1.png', {
+            frameWidth: 345,
+            frameHeight: 310
+        });
+        this.load.spritesheet(TextureKeys.Sprite2, 'assets/images/sprite/spritesheet2.png', {
+            frameWidth: 345,
+            frameHeight: 310
+        });
+
+        // --- Score Popup ---
+        this.load.image(TextureKeys.ScorePopup, 'assets/images/ui/score_popup.png');
+
 
         // - Config JSON
         // Lưu ý: File json gốc là level_s1_config.json, nhưng ta load vào key LevelS1Config
