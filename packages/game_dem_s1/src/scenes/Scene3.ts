@@ -209,6 +209,12 @@ export default class Scene3 extends Phaser.Scene {
                 
                 // Valid recording: LOCK INTERACTION IMMEDIATELY
                 this.isProcessing = true;
+
+                // Show Processing Popup
+                const uiScene = this.scene.get(SceneKeys.UI) as any;
+                if (uiScene && uiScene.showProcessingPopup) {
+                    uiScene.showProcessingPopup();
+                }
                 
                 // Auto Submit
                 const targetText = this.levelTarget || { start: 1, end: 1 };
@@ -459,10 +465,17 @@ export default class Scene3 extends Phaser.Scene {
 
     private processResult(result: any) {
         if (result.score >= 60){
-            AudioManager.play("sfx-correct");
+            AudioManager.play("sfx-ting");
+            setTimeout(() => {
+                AudioManager.play("sfx-correct");
+            }, 1200);
         } else {
             AudioManager.play("sfx-wrong");
+            setTimeout(() => {
+                AudioManager.play("voice_wrong");
+            }, 1200);
         }
+        AudioManager.play("voice_3");
     }
 
     update(time: number, delta: number) {

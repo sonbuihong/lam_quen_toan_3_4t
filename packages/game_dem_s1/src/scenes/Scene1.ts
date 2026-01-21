@@ -458,10 +458,17 @@ export default class Scene1 extends Phaser.Scene {
 
     private processResult(result: any) {
         if (result.score >= 60){
-            AudioManager.play("sfx-correct");
+            AudioManager.play("sfx-ting");
+            setTimeout(() => {
+                AudioManager.play("sfx-correct");
+            }, 1200);
         } else {
             AudioManager.play("sfx-wrong");
+            setTimeout(() => {
+                AudioManager.play("voice_wrong");
+            }, 1200);
         }
+        AudioManager.play("voice_1");
     }
 
     update(time: number, delta: number) {

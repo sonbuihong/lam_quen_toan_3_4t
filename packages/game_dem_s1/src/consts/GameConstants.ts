@@ -11,6 +11,7 @@ export const GameConstants = {
     // =========================================
     
     DEBUG_MODE: true, // Set false khi release
+    TRANSITION_DELAY: 4000, // Thời gian chờ chuyển màn (ms)
     FLOW: [SceneKeys.Scene1, SceneKeys.Scene2, SceneKeys.Scene3], // Cấu hình luồng game
     IDLE: {
         /** Thời gian chờ trước khi hiện gợi ý (ms). 10000 = 10 giây */
@@ -65,7 +66,7 @@ export const GameConstants = {
         },
         TIMING: {
             /** Chờ bao lâu mới bắt đầu Intro (ms) */
-            INTRO_DELAY: 1000,
+            INTRO_DELAY: 600,
             /** Delay restart intro khi xoay màn hình (ms) */
             RESTART_INTRO: 200,
             /** Thắng xong chờ bao lâu chuyển màn EndGame (ms) */

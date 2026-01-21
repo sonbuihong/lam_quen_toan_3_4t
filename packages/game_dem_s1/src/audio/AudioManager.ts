@@ -15,7 +15,7 @@ const SOUND_MAP: Record<string, SoundConfig> = {
 
     // ---- SFX Chung ----
     'sfx-correct': { src: `${BASE_PATH}sfx/correct_answer.mp3`, volume: 1.0 },
-    'sfx-correct_s2': { src: `${BASE_PATH}sfx/correct_color.mp3`, volume: 1.0 },
+    // 'sfx-correct_s2': { src: `${BASE_PATH}sfx/correct_color.mp3`, volume: 1.0 },
     'sfx-wrong': { src: `${BASE_PATH}sfx/wrong.mp3`, volume: 0.5 },
     'sfx-click': { src: `${BASE_PATH}sfx/click.mp3`, volume: 0.5 },
     'sfx-ting': { src: `${BASE_PATH}sfx/correct.mp3`, volume: 0.6 },
@@ -25,6 +25,10 @@ const SOUND_MAP: Record<string, SoundConfig> = {
     'voice_intro_s2': { src: `${BASE_PATH}prompt/instruction.mp3`, volume: 1 },
     'voice_intro_s3': { src: `${BASE_PATH}prompt/intro_s3.mp3`, volume: 1 },
     'hint': { src: `${BASE_PATH}prompt/hint.mp3`, volume: 1.0 },
+    'voice_1': { src: `${BASE_PATH}prompt/mot_qua_bong.mp3`, volume: 1.0 },
+    'voice_2': { src: `${BASE_PATH}prompt/hai_qua_bong.mp3`, volume: 1.0 },
+    'voice_3': { src: `${BASE_PATH}prompt/mot_o_to.mp3`, volume: 1.0 },
+    'voice_wrong': { src: `${BASE_PATH}prompt/be_co_gang_hon_nhe.mp3`, volume: 1.0 },
 
     // ---- Correct Answer Variations ----
     'complete': { src: `${BASE_PATH}sfx/complete.mp3`, volume: 1.0 },

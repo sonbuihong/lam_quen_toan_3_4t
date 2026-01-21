@@ -205,7 +205,7 @@ export class GameUtils {
             const nextSceneKey = flow[nextIndex];
             console.log(`[Flow] Transitioning: ${currentKey} -> ${nextSceneKey}`);
             
-            scene.time.delayedCall(3000, () => {
+            scene.time.delayedCall(GameConstants.TRANSITION_DELAY, () => {
                 // Tắt popup UI nếu có
                 const uiScene = scene.scene.get('UIScene') as any;
                 if (uiScene?.hideScorePopup) uiScene.hideScorePopup();
@@ -221,7 +221,7 @@ export class GameUtils {
         } else {
             // Màn cuối
             console.log(`[Flow] Reached End of Flow (${currentKey}). Finishing...`);
-            scene.time.delayedCall(3000, () => {
+            scene.time.delayedCall(GameConstants.TRANSITION_DELAY, () => {
                 const uiScene = scene.scene.get('UIScene') as any;
                 if (uiScene?.hideScorePopup) uiScene.hideScorePopup();
                 onFinish();
