@@ -1,4 +1,5 @@
-import { TextureKeys } from './Keys';
+import { SceneKeys } from './Keys';
+ import { TextureKeys } from './Keys';
 
 /**
  * Chứa toàn bộ hằng số cấu hình của Game.
@@ -10,6 +11,7 @@ export const GameConstants = {
     // =========================================
     
     DEBUG_MODE: true, // Set false khi release
+    FLOW: [SceneKeys.Scene1, SceneKeys.Scene2, SceneKeys.Scene3], // Cấu hình luồng game
     IDLE: {
         /** Thời gian chờ trước khi hiện gợi ý (ms). 10000 = 10 giây */
         THRESHOLD: 10000,

@@ -109,11 +109,11 @@ export const GameConstants = {
             // BẢNG
             BOARD_OFFSET: 0.03,
             /** Vị trí X của cột màu (Tỉ lệ màn hình) - Bên phải */
-            PALETTE_X: 0.91,
+            PALETTE_Y: 0.91,
             /** Vị trí Y bắt đầu của nút màu đầu tiên (Tỉ lệ màn hình) */
-            PALETTE_START_Y: 0.25, // Bắt đầu từ trên xuống
+            PALETTE_START_X: 0.25,
             /** Khoảng cách dọc giữa các nút màu (Tỉ lệ màn hình) */
-            PALETTE_SPACING_Y: 0.13,
+            PALETTE_SPACING_X: 0.13,
             
             // Tọa độ đích cho bàn tay hướng dẫn Intro
             HAND_INTRO_END_X: 0.42,

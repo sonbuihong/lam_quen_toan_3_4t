@@ -4,6 +4,8 @@
 export enum SceneKeys {
     Preload = 'PreloadScene',
     Scene1 = 'Scene1',
+    Scene2 = 'Scene2',
+    Scene3 = 'Scene3',
     EndGame = 'EndGameScene',
     UI = 'UIScene'
 }
@@ -26,6 +28,8 @@ export enum TextureKeys {
     Loa = 'loa',
 
     Title1 = 'title',
+    Title2 = 'title2',
+    Title3 = 'title3',
     S1_Ball = 'ball',
     S2_Ball = 'ball2',
     S3_Car = 'car',

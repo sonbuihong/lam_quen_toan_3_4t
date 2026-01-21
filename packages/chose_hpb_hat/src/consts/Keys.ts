@@ -4,6 +4,7 @@
 export enum SceneKeys {
     Preload = 'PreloadScene',
     Scene1 = 'Scene1',
+    Scene2 = 'Scene2',
     EndGame = 'EndGameScene',
     UI = 'UIScene'
 }

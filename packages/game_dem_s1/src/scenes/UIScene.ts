@@ -38,14 +38,25 @@ export default class UIScene extends Phaser.Scene {
         // Xác định TextureKeys dựa trên SceneKey
         let bannerKey = TextureKeys.S1_Banner;
         let titleKey = TextureKeys.Title1;
-        // Hiển thị Banner và Text
+        let titleKey2 = TextureKeys.Title2;
+        let titleKey3 = TextureKeys.Title3;
+        // Hiển thị Banner
         this.bannerImage = this.add.image(cx, bannerY, bannerKey).setScale(0.7).setOrigin(0.5, -0.1);
-        // this.bannerText = this.add.image(cx, bannerY, textBannerKey).setScale(0.9).setOrigin(0.5, -0.8);
         
         // Title (Added here to be on top of Banner)
-        this.add.image(cx, bannerY, titleKey)
-            .setOrigin(0.5, -0.5)
-            .setScale(1);
+        if(this.sceneKey === SceneKeys.Scene1) {
+            this.add.image(cx, bannerY, titleKey)
+                .setOrigin(0.5, -0.5)
+                .setScale(1);
+        } else if(this.sceneKey === SceneKeys.Scene2) {
+            this.add.image(cx, bannerY, titleKey2)
+                .setOrigin(0.5, -0.5)
+                .setScale(1);
+        } else if(this.sceneKey === SceneKeys.Scene3) {
+            this.add.image(cx, bannerY, titleKey3)
+                .setOrigin(0.5, -0.6)
+                .setScale(1);
+        }
 
         this.add.image(cx * 1.79, bannerY + 290, TextureKeys.Decor).setScale(1).setOrigin(0.5, 0.5);
         this.add.image(cx * 0.125, bannerY + 180, TextureKeys.Number).setScale(1).setOrigin(0.5, -0.1);

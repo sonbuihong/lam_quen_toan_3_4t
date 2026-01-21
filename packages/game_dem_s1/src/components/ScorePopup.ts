@@ -79,18 +79,6 @@ export default class ScorePopup extends Phaser.GameObjects.Container {
         this.popupScore.setText(`${finalScore}/10`);
         this.popupScore.setColor('#1565c0');
 
-        // let msg = "";
-        // if (finalScore >= 6) {
-        //     msg = "Chúc mừng bé hoàn thành bài học!";
-        // } else {
-        //     msg = "Bé hãy luyện tập thêm nhé!";
-        // }
-        // this.popupFeedback.setText(msg);
-
-        // Hide normal game buttons for final screen (or change logic if needed)
-        // this.btnReplay.setVisible(false);
-        // this.btnNext.setVisible(false);
-
         this._animateShow();
     }
 

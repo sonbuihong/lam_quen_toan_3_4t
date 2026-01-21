@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import Scene1 from './scenes/Scene1';
+import Scene2 from './scenes/Scene2';
+import Scene3 from './scenes/Scene3';
 import PreloadScene from './scenes/PreloadScene';
 import UIScene from './scenes/UIScene';
 
@@ -22,7 +24,7 @@ import { game } from "@iruka-edu/mini-game-sdk";
         width: 1920,
         height: 1080,
         parent: 'game-container',
-        scene: [PreloadScene, Scene1, EndGameScene, UIScene],
+        scene: [PreloadScene, Scene1, Scene2, Scene3, EndGameScene, UIScene],
         backgroundColor: '#ffffff',
         scale: {
             mode: Phaser.Scale.FIT,       // Dùng FIT để co giãn giữ tỉ lệ

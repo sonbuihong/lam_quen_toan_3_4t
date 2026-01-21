@@ -1,5 +1,6 @@
 // src/utils/GameUtils.ts
 import Phaser from 'phaser';
+import { GameConstants } from '../consts/GameConstants';
 
 export class GameUtils {
     /**
@@ -174,5 +175,57 @@ export class GameUtils {
         }
 
         return { x: 0, y: 0 };
+    }
+    /**
+     * Tự động chuyển màn dựa vào cấu hình FLOW trong GameConstants.
+     * @param scene Scene hiện tại
+     * @param sessionId Session ID hiện tại
+     * @param quota Quota còn lại
+     * @param onFinish Callback khi đến màn cuối (thường gọi finishEvaluation)
+     */
+    static handleSceneTransition(
+        scene: Phaser.Scene, 
+        sessionId: string | null, 
+        quota: number, 
+        onFinish: () => void
+    ) {
+        // Sử dụng trực tiếp import
+        
+        const flow = GameConstants.FLOW;
+        const currentKey = scene.scene.key;
+        const currentIndex = (flow as readonly string[]).indexOf(currentKey);
+
+        if (currentIndex === -1) {
+            console.error(`[Flow] Scene ${currentKey} not found in FLOW config!`);
+            return;
+        }
+
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < flow.length) {
+            const nextSceneKey = flow[nextIndex];
+            console.log(`[Flow] Transitioning: ${currentKey} -> ${nextSceneKey}`);
+            
+            scene.time.delayedCall(3000, () => {
+                // Tắt popup UI nếu có
+                const uiScene = scene.scene.get('UIScene') as any;
+                if (uiScene?.hideScorePopup) uiScene.hideScorePopup();
+                
+                // Stop UI Scene để Scene tiếp theo init lại UI với Title mới
+                scene.scene.stop('UIScene');
+
+                scene.scene.start(nextSceneKey, {
+                    sessionId: sessionId,
+                    quota: quota
+                });
+            });
+        } else {
+            // Màn cuối
+            console.log(`[Flow] Reached End of Flow (${currentKey}). Finishing...`);
+            scene.time.delayedCall(3000, () => {
+                const uiScene = scene.scene.get('UIScene') as any;
+                if (uiScene?.hideScorePopup) uiScene.hideScorePopup();
+                onFinish();
+            });
+        }
     }
 }

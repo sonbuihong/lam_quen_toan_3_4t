@@ -11,7 +11,6 @@ export default class PreloadScene extends Phaser.Scene {
         // 1. UI Chung
         this.load.image(TextureKeys.BtnExit, 'assets/images/ui/btn_exit.png');
         this.load.image(TextureKeys.BtnReset, 'assets/images/ui/btn_reset.png');
-        // this.load.image(TextureKeys.BtnEraser, 'assets/images/ui/btn_eraser.png');
         this.load.image(TextureKeys.HandHint, 'assets/images/ui/hand.png');
         this.load.image(TextureKeys.S1_Banner, 'assets/images/S1/banner.png');
         this.load.image(TextureKeys.S1_Board, 'assets/images/bg/board_scene.png');
@@ -24,6 +23,8 @@ export default class PreloadScene extends Phaser.Scene {
         this.load.image(TextureKeys.Mic, 'assets/images/S1/microphone.png');
         this.load.image(TextureKeys.Loa, 'assets/images/S1/loa.png');
         this.load.image(TextureKeys.Title1, 'assets/images/S1/questionTitle.png');
+        this.load.image(TextureKeys.Title2, 'assets/images/S2/questionTitle2.png');
+        this.load.image(TextureKeys.Title3, 'assets/images/S3/questionTitle3.png');
 
         // --- Scene 1 Assets 2 ---
         this.load.image(TextureKeys.S2_Ball, 'assets/images/S1/bong2.png');

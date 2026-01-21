@@ -8,7 +8,7 @@
             "textureKey": "ball",
             "baseX_pct": 0.5,
             "baseY_pct": 0.5,
-            "baseScale": 0.5
+            "baseScale": 1
         }
     ]
 }

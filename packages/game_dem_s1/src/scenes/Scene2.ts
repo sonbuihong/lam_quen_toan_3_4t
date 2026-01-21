@@ -11,7 +11,7 @@ import { playVoiceLocked, setGameSceneReference, resetVoiceState } from '../util
 import { IdleManager } from '../utils/IdleManager';
 import { ExerciseType } from '../lib/voice-session-client';
 
-export default class Scene1 extends Phaser.Scene {
+export default class Scene2 extends Phaser.Scene {
     // --- PROPERTIES ---
     private bgm!: Phaser.Sound.BaseSound;
     private voiceRecorder!: VoiceRecorder;
@@ -19,7 +19,7 @@ export default class Scene1 extends Phaser.Scene {
     private currentQuota: number = 0;
     
     // Level Management
-    private LEVEL_KEYS = [DataKeys.LevelS1Config];
+    private LEVEL_KEYS = [DataKeys.LevelS2Config];
     private currentQuestionIndex: number = 0; // Maps to Level Index (0, 1, 2)
     private levelTarget: any = null;
 
@@ -57,7 +57,7 @@ export default class Scene1 extends Phaser.Scene {
     private handTween!: Phaser.Tweens.Tween;
 
     constructor() {
-        super(SceneKeys.Scene1);
+        super(SceneKeys.Scene2);
     }
 
     init(data?: any) {
@@ -69,6 +69,18 @@ export default class Scene1 extends Phaser.Scene {
         this.isStartingSession = false;
         this.isRecording = false;
         this.isRestart = data?.isRestart || false;
+        this.isRestart = data?.isRestart || false;
+        
+        // --- 1. Resume Session Logic ---
+        if (data && data.sessionId) {
+            console.log("[Scene2] Received Session ID: ", data.sessionId);
+            this.voiceHelper.setSessionId(data.sessionId);
+            
+            if (data.quota !== undefined) {
+                this.currentQuota = data.quota;
+            }
+        }
+        
         resetVoiceState();
     }
 
@@ -95,31 +107,25 @@ export default class Scene1 extends Phaser.Scene {
 
         // 4. Intro & Start Flow
         if (!this.scene.get(SceneKeys.UI).scene.isActive()) {
-            this.scene.launch(SceneKeys.UI, { sceneKey: SceneKeys.Scene1 });
+            this.scene.launch(SceneKeys.UI, { sceneKey: SceneKeys.Scene2 });
             this.scene.bringToTop(SceneKeys.UI);
         }
 
         this.handleIntroLogic();
-
-
     }
 
     private handleIntroLogic() {
-         if (Scene1.hasInteracted || this.isRestart) {
-             this.resumeAudioContext();
-             setTimeout(() => {
-                this.playIntroSequence();
-                this.runGameFlow(); 
-             }, 500);
+        // Tự động bắt đầu vì người dùng đã tương tác ở Scene 1
+        this.resumeAudioContext();
+        
+        console.log("========================================");
+        console.log("SCENE 2 SESSION ID:", this.voiceHelper.sessionId);
+        console.log("========================================");
 
-        } else {
-             this.input.once('pointerdown', () => {
-                Scene1.hasInteracted = true;
-                this.resumeAudioContext();
-                this.playIntroSequence();
-                this.runGameFlow();
-             });
-        }
+        this.time.delayedCall(500, () => {
+            this.playIntroSequence();
+            this.runGameFlow(); 
+        });
     }
 
     private resumeAudioContext() {
@@ -235,10 +241,7 @@ export default class Scene1 extends Phaser.Scene {
             .setOrigin(0.5, 0).setScale(scl[0], scl[1]).setDepth(0);
         board.displayWidth = GameUtils.getW(this) * 0.93;
             
-        // 2. Nút Loa
-        // this.add.image(cx * 1.77, boardY * 6.5, TextureKeys.Loa).setOrigin(0.5).setScale(1);
-
-        // 3. Nút Mic
+        // 2. Nút Mic
         this.btnMic = this.add.image(cx, GameUtils.pctY(this, 0.85), TextureKeys.Mic) 
              .setScale(1).setInteractive().setVisible(false);
 
@@ -254,7 +257,7 @@ export default class Scene1 extends Phaser.Scene {
              }
         });
 
-        // 4. Nút nghe lại
+        // 3. Nút nghe lại
         this.btnPlayback = this.add.image(cx + 100, GameUtils.pctY(this, 0.85), TextureKeys.Mic)
              .setScale(0.7).setInteractive().setVisible(false);
     }
@@ -323,37 +326,56 @@ export default class Scene1 extends Phaser.Scene {
             return;
         }
 
-        // 2. Start Session (Counting Game)
-        console.log("Starting Session...");
+        // 2. Resume Session (Counting Game)
         try {
             let sessionRes;
-            // Always call startEvaluation regardless of testMode. 
-            // The hook handles passing the testmode flag to the backend.
-            sessionRes = await this.voiceHelper.startEvaluation();
+
+            // --- CHECK RESUME ---
+            if (this.voiceHelper.sessionId) {
+                console.log("[Scene2] Resuming Session:", this.voiceHelper.sessionId);
+                // Fake response for local logic
+                sessionRes = {
+                    allowPlay: true,
+                    quotaRemaining: this.currentQuota,
+                    index: this.currentQuestionIndex,
+                    message: "Resumed"
+                };
+            } else {
+                 console.error("[Scene2] Missing Session ID! Cannot resume.");
+                 this.isStartingSession = false;
+                 return;
+            }
 
             if (!sessionRes.allowPlay) {
-                console.log("[Voice] Session Start Failed:", sessionRes.message);
-                console.log("[Voice] FULL SESSION DATA:", sessionRes);
+                console.log(sessionRes.message);
                 this.isStartingSession = false;
                 return;
             }
 
-            console.log("[Voice] FULL SESSION DATA:", sessionRes);
-
-            this.currentQuota = sessionRes.quotaRemaining;
-            this.currentQuestionIndex = sessionRes.index; // Resume index
-            
-            // Check boundary
-            if (this.currentQuestionIndex >= this.LEVEL_KEYS.length) {
-                this.currentQuestionIndex = 0; // Reset logic?
+            // If new session, sync data
+            if (!this.voiceHelper.sessionId && (sessionRes as any).sessionId) {
+                 // StartSessionResponse has sessionId? Handled in hook.
             }
-
+            // Sync local props
+            this.currentQuota = sessionRes.quotaRemaining;
+            
+            // For Scene 2, we force index 0 locally as we are in a specific scene
+            // But API might need correct global index if we were using one session.
+            // However, the User wants strict Scene separation. 
+            // Let's assume Question Index resets or we manage it manually.
+            // If we use same session, the backend expects sequential indices?
+            // "logic mới là start 1 lần ở scene1 lúc bắt đầu chơi và end ở cuối scene3"
+            // So index should probably increment globally?
+            // Let's rely on `this.currentQuestionIndex` being 0 for this Scene's relative logic,
+            // but for API `submitAudio`, we might need to be careful.
+            // Update: Scene 1 used `currentQuestionIndex + 1`. 
+            // If Scene 1 had 1 level, it submitted index 1.
+            // Scene 2 should probably submit index 2?
+            // The user removed array levels, so Scene 1 has 1 level.
+            // Let's assume Scene 2 corresponds to QUESTION 2.
+            
             this.isSessionActive = true;
             this.btnMic.setVisible(true);
-            
-            console.log("========================================");
-            console.log("SCENE 1 SESSION ID:", this.voiceHelper.sessionId);
-            console.log("========================================");
 
             // Sync visual level with session index
             this.loadLevel(this.currentQuestionIndex);
@@ -413,7 +435,7 @@ export default class Scene1 extends Phaser.Scene {
                 this, 
                 this.voiceHelper.sessionId, 
                 this.currentQuota,
-                () => this.finishGameSession() // Callback cho màn cuối (nếu Scene 1 là màn cuối)
+                () => this.finishGameSession()
             );
 
         } catch (e: any) {
@@ -431,9 +453,9 @@ export default class Scene1 extends Phaser.Scene {
                 isUnload
             );
 
-            console.log("[Voice] FULL END SESSION DATA:", endRes);
-
             if (!endRes || isUnload) return;
+            
+            console.log("[Voice] FULL END SESSION DATA:", endRes);
             
             const uiScene = this.scene.get(SceneKeys.UI) as any;
             if (uiScene?.showFinalScorePopup) {
@@ -451,11 +473,8 @@ export default class Scene1 extends Phaser.Scene {
     }
 
     private processResult(result: any) {
-        if (result.score >= 60){
-            AudioManager.play("sfx-correct");
-        } else {
-            AudioManager.play("sfx-wrong");
-        }
+        if (result.score >= 60) AudioManager.play("sfx-correct"); 
+        else AudioManager.play("sfx-wrong");
     }
 
     update(time: number, delta: number) {
@@ -516,7 +535,8 @@ export default class Scene1 extends Phaser.Scene {
         this.isIntroActive = true;
         if (this.idleManager) this.idleManager.start();
 
-        playVoiceLocked(null, 'voice_intro_s2');
+        // Check if there is specific voice intro for scene 2?
+        playVoiceLocked(null, 'voice_intro_s2'); 
         this.time.delayedCall(GameConstants.SCENE1.TIMING.INTRO_DELAY, () => {
             if (this.isIntroActive) this.runHandTutorial();
         });
