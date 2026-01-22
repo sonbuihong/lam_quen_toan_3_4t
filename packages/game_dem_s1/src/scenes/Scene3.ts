@@ -489,7 +489,7 @@ export default class Scene3 extends Phaser.Scene {
         }
     }
 
-    private async finishGameSession(isUnload: boolean = false) {
+    public async finishGameSession(isUnload: boolean = false) {
         try {
             // Tính tổng số màn chơi động từ Config
             const TOTAL_QUESTIONS = GameConstants.FLOW.length;

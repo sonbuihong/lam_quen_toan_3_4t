@@ -69,7 +69,7 @@ import { game } from "@iruka-edu/mini-game-sdk";
         const resetBtn = document.getElementById('btn-reset') as HTMLImageElement;
         
         if (resetBtn) {
-            resetBtn.onclick = () => {
+            resetBtn.onclick = async () => {
                 console.log('Restart button clicked. Stopping all audio and restarting scene.');
 
                 game.retryFromStart(); // Track restart
@@ -85,6 +85,19 @@ import { game } from "@iruka-edu/mini-game-sdk";
                 }
 
                 if (window.gameScene && window.gameScene.scene) {
+                     // 1. END SESSION BACKEND BEFORE RESTART
+                     // Need to find which scene is currently ACTIVE running to call finishGameSession
+                     // window.gameScene is usually the last started scene, but let's be safe
+                     const activeScene = gamePhaser.scene.getScenes(true)[0] as any;
+                     if (activeScene && activeScene.finishGameSession) {
+                         console.log("Calling finishGameSession on active scene:", activeScene.scene.key);
+                         try {
+                            await activeScene.finishGameSession(true); // true = isUnload/Reset (skip UI)
+                         } catch(err) {
+                             console.error("Failed to finish session on reset:", err);
+                         }
+                     }
+
                      // Hide Popup if exists in UIScene
                      const uiScene = window.gameScene.scene.get('UIScene');
                      if (uiScene && (uiScene as any).hideScorePopup) {

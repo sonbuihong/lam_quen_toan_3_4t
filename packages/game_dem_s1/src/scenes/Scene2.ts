@@ -507,7 +507,7 @@ export default class Scene2 extends Phaser.Scene {
         }
     }
 
-    private async finishGameSession(isUnload: boolean = false) {
+    public async finishGameSession(isUnload: boolean = false) {
         try {
             const endRes = await this.voiceHelper.finishEvaluation(
                 this.LEVEL_KEYS.length,
