@@ -413,11 +413,15 @@ export default class Scene1 extends Phaser.Scene {
             }
 
             this.isSessionActive = true;
-            this.btnMic.setVisible(true);
             
-            // Kích hoạt hướng dẫn bàn tay khi Mic hiện
-            this.runHandTutorial();
-            
+            // DELAY 3S BEFORE SHOWING MIC
+            this.time.delayedCall(3000, () => {
+                if (!this.scene.isActive()) return; // Check if scene is still active
+                this.btnMic.setVisible(true);
+                // Kích hoạt hướng dẫn bàn tay khi Mic hiện
+                this.runHandTutorial();
+            });
+
             console.log("========================================");
             console.log("SCENE 1 SESSION ID:", this.voiceHelper.sessionId);
             console.log("========================================");
