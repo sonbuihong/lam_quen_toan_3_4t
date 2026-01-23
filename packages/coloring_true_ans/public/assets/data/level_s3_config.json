@@ -1,0 +1,40 @@
+{
+  "definitions": {
+    "teacher": {
+      "baseScale": 0.9,
+      "outlineKey": "outline",
+      "parts": [
+        { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.9, "hintPoints": [{"x": 0, "y": 0}]}
+      ]
+    }
+  },
+  "items": [
+    {
+      "type": "teacher",
+      "outlineKey": "s3_q2",
+      "baseX_pct": 0.33,
+      "baseY_pct": 0.45,
+      "baseScale": 0.8,
+      "isStatic": true
+    },
+    {
+      "type": "teacher",
+      "outlineKey": "s3_q1",
+      "baseX_pct": 0.67,
+      "baseY_pct": 0.45,
+      "isStatic": true
+    },
+    {
+      "type": "teacher",
+      "baseX_pct": 0.33,
+      "baseY_pct": 0.8,
+      "ans": false
+    },
+    {
+      "type": "teacher",
+      "baseX_pct": 0.67,
+      "baseY_pct": 0.8,
+      "ans": true
+    }
+  ]
+}

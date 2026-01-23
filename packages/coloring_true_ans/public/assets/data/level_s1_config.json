@@ -1,0 +1,39 @@
+{
+  "definitions": {
+    "teacher": {
+      "baseScale": 0.9,
+      "outlineKey": "outline",
+      "parts": [
+        { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.9, "hintPoints": [{"x": 0, "y": 0}]}
+      ]
+    }
+  },
+  "items": [
+    {
+      "type": "teacher",
+      "outlineKey": "q1",
+      "baseX_pct": 0.33,
+      "baseY_pct": 0.4,
+      "isStatic": true
+    },
+    {
+      "type": "teacher",
+      "outlineKey": "q2",
+      "baseX_pct": 0.67,
+      "baseY_pct": 0.4,
+      "isStatic": true
+    },
+    {
+      "type": "teacher",
+      "baseX_pct": 0.33,
+      "baseY_pct": 0.8,
+      "ans": true
+    },
+    {
+      "type": "teacher",
+      "baseX_pct": 0.67,
+      "baseY_pct": 0.8,
+      "ans": false
+    }
+  ]
+}
