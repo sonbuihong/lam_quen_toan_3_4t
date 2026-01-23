@@ -10,3 +10,5 @@ doc
 prog-game
 quiz-game
 *.md
+.prettierrc
+doc
