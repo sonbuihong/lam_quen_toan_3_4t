@@ -382,13 +382,13 @@ export default class Scene2 extends Phaser.Scene {
         if (this.isSessionActive || this.isStartingSession) return;
         this.isStartingSession = true;
 
-        // 1. Check Permission
-        const hasMicPermission = await this.voiceRecorder.checkPermission();
-        if (!hasMicPermission) {
-            console.log("Cần quyền Mic!");
-            this.isStartingSession = false;
-            return;
-        }
+        // 1. Check Permission (REMOVED)
+        // const hasMicPermission = await this.voiceRecorder.checkPermission();
+        // if (!hasMicPermission) {
+        //     console.log("Cần quyền Mic!");
+        //     this.isStartingSession = false;
+        //     return;
+        // }
 
         // 2. Resume Session (Counting Game)
         try {
