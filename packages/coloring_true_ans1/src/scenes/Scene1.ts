@@ -610,11 +610,11 @@ export default class Scene1 extends Phaser.Scene {
             AudioManager.play('sfx-correct_s2');
             
             // Xóa UI (Nút màu & Banner)
-            const uiScene = this.scene.get(SceneKeys.UI) as any;
-            if (uiScene) {
-                if (uiScene.hidePalette) uiScene.hidePalette();
-                if (uiScene.hideBanners) uiScene.hideBanners();
-            }
+            // const uiScene = this.scene.get(SceneKeys.UI) as any;
+            // if (uiScene) {
+            //     if (uiScene.hidePalette) uiScene.hidePalette();
+            //     // if (uiScene.hideBanners) uiScene.hideBanners();
+            // }
 
             this.time.delayedCall(GameConstants.SCENE1.TIMING.WIN_DELAY, () => {
                 // Transition to Scene 2
@@ -736,7 +736,8 @@ export default class Scene1 extends Phaser.Scene {
         if (items.length === 0) return;
         
         // Random 1 bộ phận
-        const target = items[Math.floor(Math.random() * items.length)];
+        // const target = items[Math.floor(Math.random() * items.length)];
+        const target = items[0];
 
         AudioManager.play('hint');
         

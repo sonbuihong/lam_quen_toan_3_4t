@@ -681,7 +681,8 @@ export default class Scene3 extends Phaser.Scene {
         if (items.length === 0) return;
         
         // Random 1 bộ phận
-        const target = items[Math.floor(Math.random() * items.length)];
+        // const target = items[Math.floor(Math.random() * items.length)];
+        const target = items[1];
 
         AudioManager.play('hint');
         
