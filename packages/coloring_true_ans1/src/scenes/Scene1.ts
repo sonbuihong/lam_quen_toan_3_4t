@@ -653,7 +653,7 @@ export default class Scene1 extends Phaser.Scene {
     }
 
     /**
-     * Tutorial đầu game: Tay cầm màu đỏ tô mẫu
+     * Tutorial đầu game: Tay tô mẫu
      */
     private runHandTutorial() {
         if (!this.isIntroActive) return;

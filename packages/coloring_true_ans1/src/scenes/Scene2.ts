@@ -98,7 +98,7 @@ export default class Scene2 extends Phaser.Scene {
 
         this.setupInput(); // Cài đặt sự kiện chạm/vuốt
 
-        this.playIntroSequence(); // Chạy hướng dẫn đầu game (Đã chuyển sang click-to-start)
+        // this.playIntroSequence(); // Chạy hướng dẫn đầu game (Đã chuyển sang click-to-start)
 
         // Sự kiện khi quay lại tab game (Wake up)
         this.events.on('wake', () => {
@@ -117,7 +117,7 @@ export default class Scene2 extends Phaser.Scene {
             }
             setTimeout(() => {
                 this.playIntroSequence();
-            }, 500);
+            }, 200);
         }
     }
 
