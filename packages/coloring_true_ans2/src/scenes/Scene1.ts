@@ -118,7 +118,7 @@ export default class Scene1 extends Phaser.Scene {
             }
             setTimeout(() => {
                 this.playIntroSequence();
-            }, 500);
+            }, 700);
         }
     }
 
