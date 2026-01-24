@@ -577,7 +577,7 @@ export default class Scene1 extends Phaser.Scene {
         const targetX = this.btnMic.x;
         const targetY = this.btnMic.y;
 
-        this.handCursor.setPosition(targetX + 100, targetY + 100).setVisible(true).setScale(1);
+        this.handCursor.setPosition(targetX + 65, targetY + 50).setVisible(true).setScale(1);
 
         if (this.handTween) this.handTween.stop();
         this.handTween = this.tweens.add({
@@ -650,7 +650,7 @@ export default class Scene1 extends Phaser.Scene {
         this.tweens.killTweensOf(this.handCursor);
 
         // 1. Thiết lập trạng thái ban đầu: Hiện bàn tay tại vị trí Mic
-        this.handCursor.setPosition(this.btnMic.x + 80, this.btnMic.y + 80)
+        this.handCursor.setPosition(this.btnMic.x + 65, this.btnMic.y + 50)
             .setVisible(true)
             .setScale(1)
             .setDepth(100);
