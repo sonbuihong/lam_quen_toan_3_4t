@@ -64,17 +64,17 @@ export default class UIScene extends Phaser.Scene {
         // Chọn bộ màu dựa trên SceneKey
         const paletteData = GameConstants.PALETTE_DATA;
 
-        const spacingX = GameUtils.pctX(this, UI.PALETTE_SPACING_X);
-        const paletteY = GameUtils.pctY(this, UI.PALETTE_Y);
+        const spacingY = GameUtils.pctY(this, UI.PALETTE_SPACING_Y);
+        const paletteX = GameUtils.pctX(this, UI.PALETTE_X);
         
         // Tính toán vị trí bắt đầu để căn giữa
         const totalItems = paletteData.length + 1; // +1 cho Eraser
-        const totalWidth = (totalItems - 1) * spacingX;
-        const startX = (GameUtils.getW(this) - totalWidth) / 2;
+        const totalHeight = (totalItems - 1) * spacingY;
+        const startY = (GameUtils.getH(this) - totalHeight) / 1.5;
 
         paletteData.forEach((item, i) => {
-            const btnX = startX + i * spacingX;
-            const btnY = paletteY;
+            const btnX = paletteX;
+            const btnY = startY + i * spacingY;
 
             const btn = this.add.image(btnX, btnY, item.key).setInteractive().setDepth(1);
 
@@ -94,10 +94,10 @@ export default class UIScene extends Phaser.Scene {
             this.paletteButtons.push(btn);
         });
 
-        // Tạo nút Tẩy (Eraser) - Nằm tiếp theo trong hàng ngang
+        // Tạo nút Tẩy (Eraser) - Nằm tiếp theo trong hàng dọc
         const eraserIndex = paletteData.length;
-        const eraserX = startX + eraserIndex * spacingX;
-        const eraserY = paletteY;
+        const eraserX = paletteX;
+        const eraserY = startY + eraserIndex * spacingY;
 
         const eraser = this.add
             .image(eraserX, eraserY, TextureKeys.BtnEraser)

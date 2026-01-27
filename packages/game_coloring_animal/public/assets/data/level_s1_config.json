@@ -1,21 +1,21 @@
 {
   "teacher": {
-    "baseScale": 0.66,
+    "baseScale": 0.76,
     "outlineKey": "outline",
     "baseX_pct": 0.48,
-    "baseY_pct": 0.51,
+    "baseY_pct": 0.55,
     "parts": [
-      { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": -400, "y": -100}]},
-      { "key": "2", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": 0, "y": -350}] },
-      { "key": "3", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": 450, "y": -200}]},
-      { "key": "4", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": -300, "y": 350}]},
-      { "key": "5", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": 380, "y": 350}]}
+      { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.76, "hintPoints": [{"x": -400, "y": -100}]},
+      { "key": "2", "offsetX": 0, "offsetY": 0, "scale": 0.76, "hintPoints": [{"x": 0, "y": -350}] },
+      { "key": "3", "offsetX": 0, "offsetY": 0, "scale": 0.76, "hintPoints": [{"x": 450, "y": -200}]},
+      { "key": "4", "offsetX": 0, "offsetY": 0, "scale": 0.76, "hintPoints": [{"x": -300, "y": 350}]},
+      { "key": "5", "offsetX": 0, "offsetY": 0, "scale": 0.76, "hintPoints": [{"x": 380, "y": 350}]}
     ]
   },
   "flower": {
     "outlineKey": "flowerbg",
     "baseX_pct": 0.48,
-    "baseY_pct": 0.51,
-    "baseScale": 0.66
+    "baseY_pct": 0.55,
+    "baseScale": 0.76
   }
 }
