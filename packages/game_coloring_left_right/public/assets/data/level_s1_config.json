@@ -5,8 +5,8 @@
     "baseX_pct": 0.5,
     "baseY_pct": 0.5,
     "parts": [
-      { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.7, "correctColor": 13444389, "hintPoints": [{"x": -350, "y": 0}]},
-      { "key": "2", "offsetX": 0, "offsetY": 0, "scale": 0.7, "correctColor": 9983, "hintPoints": [{"x": 350, "y": 0}] }
+      { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.7, "correctColor": 9983, "hintPoints": [{"x": -350, "y": 0}]},
+      { "key": "2", "offsetX": 0, "offsetY": 0, "scale": 0.7, "correctColor":13444389, "hintPoints": [{"x": 350, "y": 0}] }
     ]
   }
 }             
