@@ -5,11 +5,11 @@
     "baseX_pct": 0.48,
     "baseY_pct": 0.51,
     "parts": [
-      { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": -560, "y": -130}]},
-      { "key": "2", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": -180, "y": -250}] },
-      { "key": "3", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x":-250, "y": 300}]},
-      { "key": "4", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": 450, "y": -200}]},
-      { "key": "5", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": 380, "y": 280}]}
+      { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": -400, "y": -100}]},
+      { "key": "2", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": 0, "y": -350}] },
+      { "key": "3", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": 450, "y": -200}]},
+      { "key": "4", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": -300, "y": 350}]},
+      { "key": "5", "offsetX": 0, "offsetY": 0, "scale": 0.66, "hintPoints": [{"x": 380, "y": 350}]}
     ]
   },
   "flower": {
