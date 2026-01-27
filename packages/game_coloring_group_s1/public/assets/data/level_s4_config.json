@@ -1,0 +1,18 @@
+{
+  "teacher": {
+    "baseScale": 1,
+    "outlineKey": "s4_outline",
+    "baseX_pct": 0.35,
+    "baseY_pct": 0.45,
+    "parts": [
+      { "key": "s4_1", "offsetX": 0, "offsetY": 0, "scale": 1, "hintPoints": [{"x": -200, "y": 100}]},
+      { "key": "s4_2", "offsetX": 0, "offsetY": 0, "scale": 1, "hintPoints": [{"x": 0, "y": 0}]}
+    ]
+  },
+  "flower": {
+    "baseScale": 0.65,
+    "outlineKey": "s4_obj1",
+    "baseX_pct": 0.73,
+    "baseY_pct": 0.65
+  }
+}

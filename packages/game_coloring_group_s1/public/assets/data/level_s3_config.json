@@ -1,0 +1,19 @@
+{
+  "teacher": {
+    "baseScale": 1,
+    "outlineKey": "s3_outline",
+    "baseX_pct": 0.7,
+    "baseY_pct": 0.5,
+    "parts": [
+      { "key": "s3_1", "offsetX": 0, "offsetY": 0, "scale": 1, "hintPoints": [{"x": -50, "y": 0}]},
+      { "key": "s3_2", "offsetX": 0, "offsetY": 0, "scale": 1, "hintPoints": [{"x": -50, "y": -100}]},
+      { "key": "s3_3", "offsetX": 0, "offsetY": 0, "scale": 1, "hintPoints": [{"x": 80, "y": 190}]}
+    ]
+  },
+  "flower": {
+    "baseScale": 0.76,
+    "outlineKey": "s3_obj1",
+    "baseX_pct": 0.32,
+    "baseY_pct": 0.51
+  }
+}
