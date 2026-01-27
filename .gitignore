@@ -13,3 +13,4 @@ quiz-game
 .prettierrc
 doc
 copy-projects.bat
+*.text

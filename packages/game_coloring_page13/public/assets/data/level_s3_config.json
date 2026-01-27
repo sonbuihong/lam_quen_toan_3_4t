@@ -1,0 +1,36 @@
+{
+  "definitions": {
+    "teacher": {
+      "baseScale": 0.9,
+      "outlineKey": "s3_outline",
+      "parts": [
+        { "key": "s3_1_1", "offsetX": 0, "offsetY": 0, "scale": 0.9, "hintPoints": [{"x": 0, "y": 0}] },
+        { "key": "s3_1_2", "offsetX": 0, "offsetY": 0, "scale": 0.9, "hintPoints": [{"x": 0, "y": 0}] },
+        { "key": "s3_1_3", "offsetX": 0, "offsetY": 0, "scale": 0.9, "hintPoints": [{"x": 0, "y": 0}] }
+      ]
+    },
+    "teacher1": {
+      "baseScale": 0.9,
+      "outlineKey": "s3_outline1",
+      "parts": [
+        { "key": "s3_2_1", "offsetX": 0, "offsetY": 0, "scale": 0.9 },
+        { "key": "s3_2_2", "offsetX": 0, "offsetY": 0, "scale": 0.9 },
+        { "key": "s3_2_3", "offsetX": 0, "offsetY": 0, "scale": 0.9 }
+      ]
+    }
+  },
+  "items": [
+    {
+      "type": "teacher",
+      "isCorrect": true,
+      "baseX_pct": 0.5,
+      "baseY_pct": 0.65
+    },
+    {
+      "type": "teacher1",
+      "isCorrect": false,
+      "baseX_pct": 0.44,
+      "baseY_pct": 0.32
+    }
+  ]
+}

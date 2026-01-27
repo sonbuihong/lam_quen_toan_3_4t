@@ -1,0 +1,32 @@
+{
+  "definitions": {
+    "teacher": {
+      "baseScale": 0.9,
+      "outlineKey": "outline",
+      "parts": [
+        { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.9, "hintPoints": [{"x": 0, "y": 0}]}
+      ]
+    },
+    "teacher1": {
+      "baseScale": 0.9,
+      "outlineKey": "outline1",
+      "parts": [
+        { "key": "2", "offsetX": 0, "offsetY": 0, "scale": 0.9}
+      ]
+    }
+  },
+  "items": [
+    {
+      "type": "teacher",
+      "isCorrect": true,
+      "baseX_pct": 0.43,
+      "baseY_pct": 0.3
+    },
+    {
+      "type": "teacher1",
+      "isCorrect": false,
+      "baseX_pct": 0.5,
+      "baseY_pct": 0.65
+    }
+  ]
+}
