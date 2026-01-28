@@ -627,13 +627,16 @@ export default class Scene2 extends Phaser.Scene {
     private stopActiveHint() {
         if (this.activeHintTween) {
             this.activeHintTween.stop();
-            if (this.activeHintTarget) {
-                 this.activeHintTarget.setAlpha(1); 
-                 this.activeHintTarget.setScale(this.activeHintTarget.getData('originScale'));
-            }
             this.activeHintTween = null;
+        }
+
+        if (this.activeHintTarget) {
+            this.tweens.killTweensOf(this.activeHintTarget);
+            this.activeHintTarget.setAlpha(0.01); // Reset about PaintManager default alpha
+            this.activeHintTarget.setScale(this.activeHintTarget.getData('originScale'));
             this.activeHintTarget = null;
         }
+
         if (this.handHint) {
             this.tweens.killTweensOf(this.handHint);
             this.handHint.setAlpha(0).setPosition(-200, -200);

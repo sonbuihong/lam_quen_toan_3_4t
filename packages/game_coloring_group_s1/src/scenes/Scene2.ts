@@ -751,7 +751,7 @@ export default class Scene2 extends Phaser.Scene {
             this.activeHintTween = null;
         }
         if (this.activeHintTarget) {
-            this.activeHintTarget.setAlpha(1);
+            this.activeHintTarget.setAlpha(0.01);
             // Reset scale if needed, but handled in createLevel reuse of originScale
             const os = this.activeHintTarget.getData('originScale');
             if (os) this.activeHintTarget.setScale(os);

@@ -1,0 +1,11 @@
+{
+  "teacher": {
+    "baseScale": 0.68,
+    "outlineKey": "outline",
+    "baseX_pct": 0.5,
+    "baseY_pct": 0.55,
+    "parts": [
+      { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.68, "correctColor": 16711680, "hintPoints": [{"x": -150, "y": -200}] }
+    ]
+  }
+}             

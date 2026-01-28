@@ -667,7 +667,7 @@ export default class Scene4 extends Phaser.Scene {
             this.activeHintTween = null;
         }
         if (this.activeHintTarget) {
-            this.activeHintTarget.setAlpha(1);
+            this.activeHintTarget.setAlpha(0.01);
             const os = this.activeHintTarget.getData('originScale');
             if (os) this.activeHintTarget.setScale(os);
             this.activeHintTarget = null;
