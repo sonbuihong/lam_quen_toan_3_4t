@@ -200,3 +200,24 @@ import { game } from "@iruka-edu/mini-game-sdk";
     // --- E2E INTEGRATION ---
     import { installIrukaE2E } from './e2e/installIrukaE2E';
     installIrukaE2E(sdk);
+
+    // --- AUDIO UNLOCK REPORTING (FROM SAMPLE) ---
+    let firstTapHandled = false;
+    const container = document.getElementById('game-container');
+    if (container) {
+        container.addEventListener(
+            'pointerup',
+            () => {
+                if (firstTapHandled) return;
+                firstTapHandled = true;
+
+                // Báo cho SDK biết user đã tương tác -> Audio Context unlock
+                sdk.progress({ audioUnlocked: true });
+                
+                // (Optional) Gọi logic unlock của Scene nếu cần, nhưng Scene1 đã tự handle pointerdown.
+                // Ở đây chủ yếu để báo SDK.
+            },
+            { once: true, passive: true }
+        );
+    }
+

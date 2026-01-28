@@ -88,13 +88,13 @@ export default class Scene1 extends Phaser.Scene {
         this.createLevel(); // Tạo nhân vật và các vùng tô màu
         
         // SDK Integration
-        game.setTotal(1);
+        game.setTotal(2);
         (window as any).irukaGameState = {
             startTime: Date.now(),
             currentScore: 0,
         };
         sdk.score(this.score, 0);
-        sdk.progress({ levelIndex: 0, total: 1 });
+        sdk.progress({ levelIndex: 0, total: this.levels.length });
         game.startQuestionTimer();
 
         this.setupInput(); // Cài đặt sự kiện chạm/vuốt

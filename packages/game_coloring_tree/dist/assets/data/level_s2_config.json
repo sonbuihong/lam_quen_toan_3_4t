@@ -1,0 +1,12 @@
+{
+  "teacher": {
+    "baseScale": 0.7,
+    "outlineKey": "s2_outline",
+    "baseX_pct": 0.5,
+    "baseY_pct": 0.5,
+    "parts": [
+      { "key": "s2_2", "offsetX": 0, "offsetY": 0, "scale": 0.7, "correctColor": 95025, "hintPoints": [{"x": 400, "y": 0}] },
+      { "key": "s2_1", "offsetX": 0, "offsetY": 0, "scale": 0.7, "correctColor": 16768256, "hintPoints": [{"x": -500, "y": 150}] }
+    ]
+  }
+}

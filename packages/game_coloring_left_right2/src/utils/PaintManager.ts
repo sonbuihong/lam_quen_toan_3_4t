@@ -91,6 +91,9 @@ export class PaintManager {
         const rtH = maskImage.height * scale;
         const rt = this.scene.add.renderTexture(x - rtW/2, y - rtH/2, rtW, rtH);
         
+        // @NOTE: clear dữ liệu của GPU để không bị issue tô dữ liệu sai vào vùng nội dung
+        rt.clear().setAlpha(0);
+        
         // ✅ TỐI ƯU: Không set mask ngay lập tức để giảm tải render
         // rt.setMask(mask); 
         rt.setOrigin(0, 0).setDepth(10);

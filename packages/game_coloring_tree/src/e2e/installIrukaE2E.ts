@@ -41,9 +41,6 @@ export function installIrukaE2E(sdk: {
   const t0 = performance.now();
 
   window.__irukaTest = {
-    setTotal(n: number) { game.setTotal(n); },
-    startQ(n = 1) { for (let i=0;i<n;i++) game.startQuestionTimer(); },
-    finishQ(n = 1) { for (let i=0;i<n;i++) game.finishQuestionTimer(); },
     makeWrong(n = 1) {
       n = clampInt(n, 1);
       for (let i = 0; i < n; i++) game.recordWrong();

@@ -6,11 +6,8 @@ balloons-select-game
 client-sdk
 compare-pick-game
 compare-quantity-game
-doc
 prog-game
 quiz-game
-*.md
 .prettierrc
-doc
 copy-projects.bat
 *.text
