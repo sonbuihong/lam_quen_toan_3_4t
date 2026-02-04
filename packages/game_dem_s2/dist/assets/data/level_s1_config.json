@@ -1,0 +1,44 @@
+{
+    "sharedImages": [
+        {
+            "textureKey": "cake",
+            "baseX_pct": 0.5,
+            "baseY_pct": 0.5,
+            "baseScale": 0.65
+        }
+    ],
+    "levels": [
+        {
+            "id": 1,
+            "targetText": {
+                "start": 1,
+                "end": 1
+            },
+            "circle": {
+                "x_pct": 0.43,
+                "y_pct": 0.66,
+                "radius": 100,
+                "color": "",
+                "alpha": 0.001,
+                "strokeColor": "0x00AA00",
+                "strokeWidth": 5
+            }
+        },
+        {
+            "id": 2,
+            "targetText": {
+                "start": 2,
+                "end": 2
+            },
+            "circle": {
+                "x_pct": 0.616,
+                "y_pct": 0.686,
+                "radius": 150,
+                "color": "",
+                "alpha": 0.0001,
+                "strokeColor": "0x00AA00",
+                "strokeWidth": 5
+            }
+        }
+    ]
+}

@@ -550,10 +550,10 @@ export default class Scene3 extends Phaser.Scene {
                 total: 3,
                 score: this.score,
             });
-            sdk.complete({
-                  timeMs: Date.now() - ((window as any).irukaGameState?.startTime ?? Date.now()),
-                  extras: { reason: "finish", stats: game.prepareSubmitData() },
-            });
+            // sdk.complete({
+            //       timeMs: Date.now() - ((window as any).irukaGameState?.startTime ?? Date.now()),
+            //       extras: { reason: "finish", stats: game.prepareSubmitData() },
+            // });
 
             AudioManager.play('sfx-correct_s2');
             

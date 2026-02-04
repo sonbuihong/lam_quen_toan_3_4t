@@ -1,7 +1,7 @@
 {
-  "id": "game_coloring_high_short_low_long",
-  "name": "Game Tô Màu Cao-Thấp-Dài-Ngắn-Hơn",
-  "short_name": "Tô Màu Cao-Thấp-Dài-Ngắn-Hơn",
+  "id": "game_coloring_higher_lower_longer_shorter",
+  "name": "Game Tô Màu Cao hơn-Thấp hơn-Dài hơn-Ngắn hơn",
+  "short_name": "Tô Màu Cao hơn-Thấp hơn-Dài hơn-Ngắn hơn",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",

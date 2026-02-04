@@ -359,11 +359,6 @@ export default class Scene2 extends Phaser.Scene {
                 score: this.score,
             });
 
-            sdk.complete({
-                timeMs: Date.now() - ((window as any).irukaGameState?.startTime ?? Date.now()),
-                extras: { reason: "finish", stats: game.prepareSubmitData() },
-            });
-
             AudioManager.play('sfx-correct_s2');
             
             // Xóa UI (Nút màu & Banner) -> Scene 2 Xong thì có thể xóa hoặc sang EndGame

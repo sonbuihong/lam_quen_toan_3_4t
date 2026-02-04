@@ -8,7 +8,16 @@ import UIScene from './scenes/UIScene';
 import EndGameScene from './scenes/EndgameScene';
 import { initRotateOrientation } from './utils/rotateOrientation';
 import AudioManager from './audio/AudioManager';
-import { game } from "@iruka-edu/mini-game-sdk";
+import { game, configureSdkContext } from "@iruka-edu/mini-game-sdk";
+
+// Mock dữ liệu khi chạy offline (không qua hub)
+configureSdkContext({
+  fallback: {
+    gameId: "local-game-001",
+    lessonId: "local-lesson-001",
+    gameVersion: "0.0.0",
+  },
+});
 
     declare global {
         interface Window {

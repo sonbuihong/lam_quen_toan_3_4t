@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@iruka-edu/game-core':
-        specifier: ^0.2.0
-        version: 0.2.0(phaser@3.90.0)
+        specifier: ^0.3.0
+        version: 0.3.0(phaser@3.90.0)
       '@iruka-edu/mini-game-sdk':
-        specifier: ^0.2.0
-        version: 0.2.0(phaser@3.90.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^0.6.0
+        version: 0.6.0(phaser@3.90.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       howler:
         specifier: ^2.2.4
         version: 2.2.4
@@ -189,14 +189,14 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@iruka-edu/game-core@0.2.0':
-    resolution: {integrity: sha512-y+kl2CZxmVLFqODgXiUsK7zohSmbvOElGFjzzWKpuhozDfjaw0WeyRt+qA8mHI4/KvrBijxJe1amE/DWhXgb3w==, tarball: https://npm.pkg.github.com/download/@iruka-edu/game-core/0.2.0/c3ba6f09c3366876cfb0dcf0a344f2cbb6bcee26}
+  '@iruka-edu/game-core@0.3.0':
+    resolution: {integrity: sha512-FBT7jfc25fiehbahDJph6/pSAjokPHq8XW/P0lH9Xc9IlyVHp8qT+9pI/e669oAl1FaEf9/G/+N3x/gD6UERBQ==, tarball: https://npm.pkg.github.com/download/@iruka-edu/game-core/0.3.0/e993d25fcf99a0c406c76754fd39032500014bf3}
     engines: {node: '>=18'}
     peerDependencies:
       phaser: ^3.80.0
 
-  '@iruka-edu/mini-game-sdk@0.2.0':
-    resolution: {integrity: sha512-G4/dkwhSdf9JTJ6+7E5MEF1IRSm5mzVSloKPSZW1cywl22BZOo5Wl5Zs47YRrUUNFiUKOjIVGlRzak0i4qrIgw==, tarball: https://npm.pkg.github.com/download/@iruka-edu/mini-game-sdk/0.2.0/02b5ec41cf1484e6593032d8a2d52b52208ac150}
+  '@iruka-edu/mini-game-sdk@0.6.0':
+    resolution: {integrity: sha512-cQmu0nWqaeI+lBmXQMOygkwaBTWibGEW2wDeIMuNSjZxbzh+WDpRGHLWYJoCLlcNydX8M/QVmUM3cABypGQwIA==, tarball: https://npm.pkg.github.com/download/@iruka-edu/mini-game-sdk/0.6.0/a051d5b5f255cb27582c4926ffa0b12ba76cf67f}
     peerDependencies:
       phaser: ^3.80.0
       react: ^18
@@ -454,6 +454,9 @@ packages:
       yaml:
         optional: true
 
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
 snapshots:
 
   '@esbuild/aix-ppc64@0.27.2':
@@ -534,13 +537,14 @@ snapshots:
   '@esbuild/win32-x64@0.27.2':
     optional: true
 
-  '@iruka-edu/game-core@0.2.0(phaser@3.90.0)':
+  '@iruka-edu/game-core@0.3.0(phaser@3.90.0)':
     dependencies:
       phaser: 3.90.0
+      zod: 3.25.76
 
-  '@iruka-edu/mini-game-sdk@0.2.0(phaser@3.90.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@iruka-edu/mini-game-sdk@0.6.0(phaser@3.90.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@iruka-edu/game-core': 0.2.0(phaser@3.90.0)
+      '@iruka-edu/game-core': 0.3.0(phaser@3.90.0)
       howler: 2.2.4
       phaser: 3.90.0
       react: 18.3.1
@@ -751,3 +755,5 @@ snapshots:
       tinyglobby: 0.2.15
     optionalDependencies:
       fsevents: 2.3.3
+
+  zod@3.25.76: {}

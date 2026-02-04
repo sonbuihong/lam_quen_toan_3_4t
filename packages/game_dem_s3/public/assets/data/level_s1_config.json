@@ -1,0 +1,43 @@
+{
+    "levels": [
+        {
+            "id": 1,
+            "image": {
+                "textureKey": "image_level1",
+                "x_pct": 0.5,
+                "y_pct": 0.5,
+                "scale": 0.65
+            },
+            "targetText": {
+                "start": 3,
+                "end": 3
+            }
+        },
+        {
+            "id": 2,
+            "image": {
+                "textureKey": "image_level2",
+                "x_pct": 0.5,
+                "y_pct": 0.5,
+                "scale": 0.65
+            },
+            "targetText": {
+                "start": 3,
+                "end": 3
+            }
+        },
+        {
+            "id": 3,
+            "image": {
+                "textureKey": "image_level3",
+                "x_pct": 0.5,
+                "y_pct": 0.5,
+                "scale": 0.65
+            },
+            "targetText": {
+                "start": 3,
+                "end": 3
+            }
+        }
+    ]
+}

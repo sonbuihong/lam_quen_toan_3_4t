@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@iruka-edu/game-core": "^0.2.0",
-    "@iruka-edu/mini-game-sdk": "^0.2.0",
+    "@iruka-edu/game-core": "^0.3.0",
+    "@iruka-edu/mini-game-sdk": "^0.6.0",
     "howler": "^2.2.4",
     "phaser": "^3.90.0"
   },

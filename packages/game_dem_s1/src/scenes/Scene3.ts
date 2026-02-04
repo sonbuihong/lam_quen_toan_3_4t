@@ -5,11 +5,12 @@ import { GameUtils } from '../utils/GameUtils';
 import { changeBackground } from '../utils/BackgroundManager';
 import { VoiceRecorder } from '../utils/VoiceRecorder';
 import AudioManager from '../audio/AudioManager';
-import { showGameButtons, hideGameButtons } from '../main';
-import { useVoiceEvaluation } from '../hooks/useVoiceEvaluation';
+import { showGameButtons, hideGameButtons, sdk } from '../main';
+import { useVoiceEvaluation, ExerciseType } from '../hooks/useVoiceEvaluation';
+import { game } from "@iruka-edu/mini-game-sdk";
 import { playVoiceLocked, setGameSceneReference, resetVoiceState } from '../utils/rotateOrientation';
 import { IdleManager } from '../utils/IdleManager';
-import { ExerciseType } from '../lib/voice-session-client';
+import { playRecordedAudio } from '../utils/AudioUtils';
 
 export default class Scene3 extends Phaser.Scene {
     // --- PROPERTIES ---
@@ -432,6 +433,9 @@ export default class Scene3 extends Phaser.Scene {
 
             // Sync visual level with session index
             this.loadLevel(this.currentQuestionIndex);
+            
+            // Mark start question
+            game.startQuestionTimer();
 
         } catch (err) {
             console.error("Session Start Error:", err);
@@ -441,6 +445,10 @@ export default class Scene3 extends Phaser.Scene {
     }
 
     private async sendAudioToBackend(audioBlob: Blob, inputTarget: string | object) {
+        // --- DEBUG PLAYBACK ---
+        // playRecordedAudio(audioBlob);
+        // ----------------------
+
         if (!this.voiceHelper.sessionId) {
             console.error("[Voice] Submission failed: No Session ID.");
             return;
@@ -477,11 +485,27 @@ export default class Scene3 extends Phaser.Scene {
             this.processResult(result);
             this.submissionCount++;
 
+            if (result.score >= 60) {
+                 game.recordCorrect({ scoreDelta: 1 });
+                 game.finishQuestionTimer();
+            } else {
+                 game.recordWrong();
+                 game.finishQuestionTimer();
+            }
+
             // Show Popup
             const uiScene = this.scene.get(SceneKeys.UI) as any; 
             if (uiScene && uiScene.showScorePopup) {
                 uiScene.showScorePopup(result.score, result.feedback);
             }
+
+            // SDK: Report Progress
+            sdk.score(result.score, result.score); 
+            sdk.progress({
+                 levelIndex: 2, // Scene 3 -> 2
+                 total: 3,
+                 score: result.score
+            });
 
             // Transition Logic (Dynamic)
             GameUtils.handleSceneTransition(
@@ -567,7 +591,8 @@ export default class Scene3 extends Phaser.Scene {
         
         // PAUSE idle timer while showing hint
         if (this.idleManager) this.idleManager.stop();
-
+        
+        game.addHint(); // Track hint
         AudioManager.play('hint');
         const targetX = this.btnMic.x;
         const targetY = this.btnMic.y;

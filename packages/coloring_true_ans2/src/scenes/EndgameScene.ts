@@ -112,7 +112,6 @@ export default class EndGameScene extends Phaser.Scene {
             const timeMs = state.startTime ? Date.now() - state.startTime : 0;
             
             game.finalizeAttempt(); 
-            // const extraData = game.prepareSubmitData();
 
             sdk.complete({
                 timeMs: Date.now() - ((window as any).irukaGameState?.startTime ?? Date.now()),

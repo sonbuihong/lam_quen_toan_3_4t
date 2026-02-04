@@ -6,11 +6,11 @@ import { changeBackground } from '../utils/BackgroundManager';
 import { VoiceRecorder } from '../utils/VoiceRecorder';
 import AudioManager from '../audio/AudioManager';
 import { showGameButtons, hideGameButtons, sdk } from '../main';
-import { useVoiceEvaluation } from '../hooks/useVoiceEvaluation';
+import { useVoiceEvaluation, ExerciseType } from '../hooks/useVoiceEvaluation';
 import { playVoiceLocked, setGameSceneReference, resetVoiceState } from '../utils/rotateOrientation';
 import { IdleManager } from '../utils/IdleManager';
-import { ExerciseType } from '../lib/voice-session-client';
 import { game } from "@iruka-edu/mini-game-sdk";
+import { playRecordedAudio } from '../utils/AudioUtils';
 
 export default class Scene1 extends Phaser.Scene {
     // --- PROPERTIES ---
@@ -76,13 +76,14 @@ export default class Scene1 extends Phaser.Scene {
         resetVoiceState();
         
         // SDK: Set Total Levels
-        game.setTotal(this.LEVEL_KEYS.length || 1);
+        // SDK: Set Total Levels (Assuming 3 scenes for this flow)
+        game.setTotal(3);
         (window as any).irukaGameState = {
             startTime: Date.now(),
             currentScore: 0,
         };
         sdk.score(0, 0);
-        sdk.progress({ levelIndex: 0, total: this.LEVEL_KEYS.length || 1 });
+        sdk.progress({ levelIndex: 0, total: 3 });
     }
 
     create() {
@@ -230,6 +231,9 @@ export default class Scene1 extends Phaser.Scene {
 
                     // Noise: Restart idle timer immediately
                     if (this.idleManager) this.idleManager.start();
+                    
+                    // Ghi nhận sai khi noise/ngắn quá (tùy nhe, thường noise ko tính là sai, nhưng nếu user nói sai thì tính)
+                    // Ở đây coi như chưa trả lời, nên ko gọi recordWrong
                     return;
                 }
                 
@@ -443,6 +447,9 @@ export default class Scene1 extends Phaser.Scene {
             console.log("========================================");
             console.log("SCENE 1 SESSION ID:", this.voiceHelper.sessionId);
             console.log("========================================");
+            
+            // Mark start question
+            game.startQuestionTimer();
 
             // Sync visual level with session index
             this.loadLevel(this.currentQuestionIndex);
@@ -455,6 +462,10 @@ export default class Scene1 extends Phaser.Scene {
     }
 
     private async sendAudioToBackend(audioBlob: Blob, inputTarget: string | object) {
+        // --- DEBUG PLAYBACK ---
+        // playRecordedAudio(audioBlob);
+        // ----------------------
+        
         if (!this.voiceHelper.sessionId) {
             console.error("[Voice] Submission failed: No Session ID.");
             return;
@@ -491,11 +502,21 @@ export default class Scene1 extends Phaser.Scene {
             this.processResult(result);
             this.submissionCount++;
             
+            if (result.score >= 60) {
+                 game.recordCorrect({ scoreDelta: 1 });
+                 game.finishQuestionTimer();
+            } else {
+                 game.recordWrong();
+                 // Sai cũng finish timer hay để timer chạy tiếp? 
+                 // Thường là finish 1 question.
+                 game.finishQuestionTimer();
+            }
+
             // SDK: Report Progress
             sdk.score(result.score, result.score); 
             sdk.progress({
-                 levelIndex: this.currentQuestionIndex, // Current Level (0-based)
-                 total: this.LEVEL_KEYS.length,
+                 levelIndex: 0, // Scene 1 -> 0
+                 total: 3,
                  score: result.score
             });
 
@@ -592,6 +613,7 @@ export default class Scene1 extends Phaser.Scene {
         // PAUSE idle timer while showing hint
         if (this.idleManager) this.idleManager.stop();
 
+        game.addHint(); // Track hint usage
         AudioManager.play('hint');
         const targetX = this.btnMic.x;
         const targetY = this.btnMic.y;

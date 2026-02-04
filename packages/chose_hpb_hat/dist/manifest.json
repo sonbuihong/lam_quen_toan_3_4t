@@ -1,20 +1,20 @@
 {
-  "id": "game_to_mau_ca_sau",
-  "name": "Game Tô Màu Cá Sấu",
-  "short_name": "Tô Màu Cá Sấu",
+  "id": "game_chose_hpb_hat",
+  "name": "Game Chose HPB HAT",
+  "short_name": "Chose HPB HAT",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "assets/icon-192.png",
-      "sizes": "192x192",
+      "src": "thumb1.png",
+      "sizes": "308x211",
       "type": "image/png"
     },
      {
-      "src": "assets/icon-512.png",
-      "sizes": "512x512",
+      "src": "thumb2.png",
+      "sizes": "343x170",
       "type": "image/png"
     }
   ]
