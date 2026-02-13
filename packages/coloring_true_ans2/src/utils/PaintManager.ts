@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GameConstants } from '../consts/GameConstants';
+import { game } from "@iruka-edu/mini-game-sdk";
 
 export class PaintManager {
     private scene: Phaser.Scene;
@@ -37,6 +38,11 @@ export class PaintManager {
 
     // Callback trả về cả Set màu thay vì 1 màu lẻ
     private onPartComplete: (id: string, rt: Phaser.GameObjects.RenderTexture, usedColors: Set<number>) => void;
+
+    // --- SDK TRACKING ---
+    private paintTrackers = new Map<string, any>();
+    private nextItemSeq = 0;
+    private runSeq = 1; // Assuming 1 run per scene session for simplicity, or handle globally
 
     constructor(scene: Phaser.Scene, onComplete: (id: string, rt: Phaser.GameObjects.RenderTexture, usedColors: Set<number>) => void) {
         this.scene = scene;
@@ -139,6 +145,12 @@ export class PaintManager {
             this.lastX = pointer.x - activeLayer.x;
             this.lastY = pointer.y - activeLayer.y;
 
+            // --- SDK TRACKING: ON SHOWN ---
+            const tracker = this.getOrCreatePaintTracker(uniqueId, key, hitArea);
+            if (tracker) {
+                tracker.onShown(Date.now());
+            }
+
             this.paint(pointer, activeLayer);
         });
 
@@ -159,12 +171,9 @@ export class PaintManager {
         if (this.activeRenderTexture) {
             // ✅ TỐI ƯU: Chỉ check progress nếu đã vẽ đủ nhiều (Throttle)
             const id = this.activeRenderTexture.getData('id');
-            const dist = this.partUncheckedMetrics.get(id) || 0;
-            
-            if (dist > this.CHECK_THRESHOLD) {
-                this.checkProgress(this.activeRenderTexture);
-                this.partUncheckedMetrics.set(id, 0); // Reset distance
-            }
+            // Check immediately on pointer up regardless of distance to update SDK
+            this.checkProgress(this.activeRenderTexture, true); 
+            this.partUncheckedMetrics.set(id, 0); // Reset distance
             
             this.activeRenderTexture = null;
         }
@@ -299,7 +308,7 @@ export class PaintManager {
     }
 
     // ✅ HÀM CHECK PROGRESS MỚI: TỐI ƯU BỘ NHỚ
-    private checkProgress(rt: Phaser.GameObjects.RenderTexture) {
+    private checkProgress(rt: Phaser.GameObjects.RenderTexture, isPointerUp: boolean = false) {
         if (rt.getData('isFinished')) return;
         
         const id = rt.getData('id');
@@ -346,6 +355,48 @@ export class PaintManager {
 
             const percentage = total > 0 ? match / total : 0;
             
+            // --- SDK TRACKING: ON DONE (Attempt) ---
+            if (isPointerUp) {
+                const usedColors = this.partColors.get(id) || new Set([this.brushColor]);
+                const tracker = this.paintTrackers.get(id);
+                if (tracker) {
+                    const minCov = GameConstants.PAINT.WIN_PERCENT; // Or fetch from hitArea data if available
+                    const response = {
+                        selected_color: usedColors.size === 1 ? this.toHex([...usedColors][0]) : "multi",
+                        brush_size: this.brushSize,
+                        color_change_count: Math.max(0, usedColors.size - 1),
+                        brush_change_count: 0,
+                    
+                        regions_result: [
+                            {
+                                region_id: id,
+                                area_px: total, // Approximate with checked pixels
+                                paint_in_px: match,
+                                paint_out_px: 0,
+                                coverage: percentage,
+                                spill_ratio: 0,
+                            },
+                        ],
+                    
+                        total_paint_in_px: match,
+                        total_paint_out_px: 0,
+                        completion_pct: percentage,
+                        spill_ratio: 0,
+                    };
+
+                    tracker.onDone(response, Date.now(), {
+                        isCorrect: percentage >= minCov,
+                        errorCode: percentage >= minCov ? null : "LOW_COVERAGE",
+                    });
+
+                    // Finalize if finished
+                    if (percentage > GameConstants.PAINT.WIN_PERCENT) {
+                         tracker.finalize();
+                         this.paintTrackers.delete(id);
+                    }
+                }
+            }
+
             if (percentage > GameConstants.PAINT.WIN_PERCENT) {
                 rt.setData('isFinished', true);
 
@@ -372,5 +423,62 @@ export class PaintManager {
             ctx.drawImage(img, 0, 0, w, h);
         }
         return ctx;
+    }
+
+    // --- SDK HELPERS ---
+    private getOrCreatePaintTracker(partId: string, partKey: string, hitArea: Phaser.GameObjects.Image) {
+        let t = this.paintTrackers.get(partId);
+        if (!t) {
+            const seq = ++this.nextItemSeq;
+            
+            const areaPx = hitArea.getData("area_px") ?? 0;
+            const allowedColors = hitArea.getData("allowed_colors") ?? ["any"];
+            const correctColor = hitArea.getData("correct_color") ?? null;
+            const minCov = hitArea.getData("min_region_coverage") ?? GameConstants.PAINT.WIN_PERCENT;
+            const maxSpill = hitArea.getData("max_spill_ratio") ?? 0;
+            
+            // Try to guess scene_id from partId or scene manager if possible, hardcode for now or pass in
+            const sceneId = "SCN_PAINT_GENERIC"; 
+
+            t = (game as any).createPaintTracker({
+                meta: {
+                    item_id: `PAINT_${partId}`,
+                    item_type: "paint",
+                    seq,
+                    run_seq: this.runSeq,
+                    difficulty: 1,
+                    scene_id: sceneId,
+                    scene_seq: seq,
+                    scene_type: "paint",
+                    skill_ids: [],
+                },
+                expected: {
+                    regions: [
+                        {
+                            id: partId,
+                            area_px: areaPx,
+                            allowed_colors: allowedColors,
+                            correct_color: correctColor,
+                        },
+                    ],
+                    min_region_coverage: minCov,
+                    max_spill_ratio: maxSpill,
+                },
+            });
+            
+            this.paintTrackers.set(partId, t);
+        }
+        return t;
+    }
+
+    private toHex(colorNum: number): string {
+        return '#' + colorNum.toString(16).padStart(6, '0');
+    }
+
+    public finalizeAll() {
+        for (const [_, t] of this.paintTrackers.entries()) {
+            t.finalize();
+        }
+        this.paintTrackers.clear();
     }
 }

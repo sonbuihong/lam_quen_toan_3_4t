@@ -1,8 +1,5 @@
 {
-    "targetText": {
-        "start": 1,
-        "end": 1
-    },
+    "correctKey": "ball",
     "images": [
         {
             "textureKey": "ball",

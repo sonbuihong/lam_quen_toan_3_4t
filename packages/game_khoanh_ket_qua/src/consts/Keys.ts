@@ -17,10 +17,13 @@ export enum TextureKeys {
     S1_Banner = 'banner',
     S1_Board = 'board',
 
-    Title1 = 'title',
+    
     imgTopic = 'topic',
     frameAns = 'frameAns',
-    
+    Title1 = 'title1',
+    Title2 = 'title2',
+    Title3 = 'title3',
+    Title4 = 'title4',
 
     // --- asset Level ---
     S1 = '1',

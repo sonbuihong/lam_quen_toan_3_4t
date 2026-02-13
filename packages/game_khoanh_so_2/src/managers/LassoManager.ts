@@ -147,6 +147,19 @@ export class LassoManager {
         this.points.push(new Phaser.Math.Vector2(x, y));
     }
 
+    /**
+     * Tính tổng độ dài của nét vẽ (theo pixel)
+     */
+    public getPathLengthPx(): number {
+        if (this.points.length < 2) return 0;
+        
+        let length = 0;
+        for (let i = 0; i < this.points.length - 1; i++) {
+            length += this.points[i].distance(this.points[i + 1]);
+        }
+        return length;
+    }
+
     public clear() {
         this.graphics.clear();
         this.points = [];

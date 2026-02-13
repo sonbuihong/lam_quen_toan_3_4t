@@ -143,6 +143,9 @@ export default class Scene3 extends Phaser.Scene {
     shutdown() {
         this.stopIntro();
 
+        if (this.paintManager) {
+             this.paintManager.finalizeAll();
+        }
         this.paintManager = null as any; // Giải phóng bộ nhớ
         this.scene.stop(SceneKeys.UI);
         if (this.bgm) {
@@ -328,6 +331,13 @@ export default class Scene3 extends Phaser.Scene {
 
             this.unfinishedPartsMap.set(id, hitArea);
             this.totalParts++;
+
+            // --- SDK DATA SETUP ---
+            hitArea.setData("area_px", part.area_px ?? 0);
+            hitArea.setData("allowed_colors", part.allowed_colors ?? ["any"]);
+            hitArea.setData("correct_color", part.correct_color ?? null);
+            hitArea.setData("min_region_coverage", GameConstants.PAINT.WIN_PERCENT);
+            hitArea.setData("max_spill_ratio", 0);
         });
 
 

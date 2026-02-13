@@ -38,50 +38,50 @@ export class ObjectManager {
             return;
         }
 
-        // Spawn từng config (mỗi config có left và right)
+        // Spawn từng config
         configs.forEach((config: any) => {
             const { width, height } = this.scene.scale;
             
-            // Spawn Left Object
-            if (config.left) {
-                const leftDef = config.left;
-                const leftX = leftDef.baseX_pct * width;
-                const leftY = leftDef.baseY_pct * height;
-                const leftImg = this.scene.add.image(leftX, leftY, leftDef.textureKey);
+            // Spawn QES (Question) Object
+            if (config.qes) {
+                const qesDef = config.qes;
+                const qX = qesDef.baseX_pct * width;
+                const qY = qesDef.baseY_pct * height;
+                const qImg = this.scene.add.image(qX, qY, qesDef.textureKey);
                 
-                leftImg.setData('textureKey', leftDef.textureKey);
-                leftImg.setData('side', 'left'); // ⭐ Đánh dấu side
-                leftImg.setData('isCorrect', config.correctKey === 'left'); // ⭐ Đánh dấu đáp án
+                qImg.setData('textureKey', qesDef.textureKey);
+                qImg.setData('type', 'question'); // Mark as question
                 
-                if (leftDef.baseScale) {
-                    leftImg.setScale(leftDef.baseScale);
+                if (qesDef.baseScale) {
+                    qImg.setScale(qesDef.baseScale);
                 }
                 
-                this.objects.push(leftImg);
+                this.objects.push(qImg);
             }
-            
-            // Spawn Right Object
-            if (config.right) {
-                const rightDef = config.right;
-                const rightX = rightDef.baseX_pct * width;
-                const rightY = rightDef.baseY_pct * height;
-                const rightImg = this.scene.add.image(rightX, rightY, rightDef.textureKey);
-                
-                rightImg.setData('textureKey', rightDef.textureKey);
-                rightImg.setData('side', 'right'); // ⭐ Đánh dấu side
-                rightImg.setData('isCorrect', config.correctKey === 'right'); // ⭐ Đánh dấu đáp án
-                
-                if (rightDef.baseScale) {
-                    rightImg.setScale(rightDef.baseScale);
-                }
-                
-                this.objects.push(rightImg);
+
+            if (config.items && Array.isArray(config.items)) {
+                config.items.forEach((item: any) => {
+                    const x = item.baseX_pct * width;
+                    const y = item.baseY_pct * height;
+                    const img = this.scene.add.image(x, y, item.textureKey);
+                    
+                    img.setData('textureKey', item.textureKey);
+                    img.setData('id', item.id); // ⭐ Đánh dấu id (thay cho side)
+                    img.setData('isCorrect', item.isCorrect); // ⭐ Đánh dấu đáp án từ config
+                    img.setData('type', 'answer'); // Mark as potential answer
+                    
+                    if (item.baseScale) {
+                        img.setScale(item.baseScale);
+                    }
+                    
+                    this.objects.push(img);
+                });
             }
         });
 
         console.log(`ObjectManager: Đã tạo ${this.objects.length} đối tượng từ ${configs.length} config(s).`);
     }
-    
+
     /**
      * Kiểm tra xem những đối tượng nào nằm trong vùng chọn.
      * @param polygon Vùng chọn (Phaser.Geom.Polygon)
@@ -182,30 +182,24 @@ export class ObjectManager {
      * Hiệu ứng khi chọn đúng/sai (Visual Feedback)
      */
     public highlightObjects(objects: Phaser.GameObjects.Image[], isCorrect: boolean) {
-        const color = isCorrect ? 0x00ff00 : 0xff0000;
         objects.forEach(obj => {
             this.scene.tweens.add({
                 targets: obj,
                 scale: obj.scale * 1.2,
                 duration: 200,
                 yoyo: true,
-                onStart: () => obj.setTint(color),
                 onComplete: () => obj.clearTint()
             });
         });
     }
 
     /**
-     * Xác định object thuộc side nào (left/right)
+     * Xác định object id
      * @param obj Object cần kiểm tra
-     * @returns "left" | "right" | null
+     * @returns id string | null
      */
-    public getSideOfObject(obj: Phaser.GameObjects.Image): "left" | "right" | null {
-        const side = obj.getData('side');
-        if (side === 'left' || side === 'right') {
-            return side;
-        }
-        return null;
+    public getObjectId(obj: Phaser.GameObjects.Image): string | null {
+        return obj.getData('id') || null;
     }
 
     /**

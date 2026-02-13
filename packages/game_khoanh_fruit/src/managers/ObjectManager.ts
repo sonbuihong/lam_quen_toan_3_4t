@@ -79,7 +79,7 @@ export class ObjectManager {
             }
         });
 
-        console.log(`ObjectManager: Đã tạo ${this.objects.length} đối tượng từ ${configs.length} config(s).`);
+        // console.log(`ObjectManager: Đã tạo ${this.objects.length} đối tượng từ ${configs.length} config(s).`);
     }
     
     /**
@@ -182,14 +182,12 @@ export class ObjectManager {
      * Hiệu ứng khi chọn đúng/sai (Visual Feedback)
      */
     public highlightObjects(objects: Phaser.GameObjects.Image[], isCorrect: boolean) {
-        const color = isCorrect ? 0x00ff00 : 0xff0000;
         objects.forEach(obj => {
             this.scene.tweens.add({
                 targets: obj,
                 scale: obj.scale * 1.2,
                 duration: 200,
                 yoyo: true,
-                onStart: () => obj.setTint(color),
                 onComplete: () => obj.clearTint()
             });
         });

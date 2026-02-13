@@ -26,6 +26,12 @@ export default class Scene1 extends Phaser.Scene {
     private idleManager!: IdleManager;
     private isWaitingForIntroStart: boolean = true;
     
+    // SDK theo dõi trạng thái
+    private runSeq = 1;
+    private itemSeq = 0;
+    private circleTracker: any = null;
+
+    
     // Getter tiện ích cho UIScene
     private get uiScene(): UIScene {
         return this.scene.get(SceneKeys.UI) as UIScene;
@@ -60,8 +66,11 @@ export default class Scene1 extends Phaser.Scene {
         this.currentLevelIndex = 0;
 
         if (data?.isRestart) {
+            this.__sdkFinalizeAsQuit();
+            this.runSeq += 1;
+            this.itemSeq = 0;
+
             this.isWaitingForIntroStart = false;
-            // Nếu không phải restart từ màn hình kết thúc (mà là nút replay trong game), gọi SDK retry
             if (!data.fromEndGame) {
                 game.retryFromStart(); 
             }
@@ -86,6 +95,9 @@ export default class Scene1 extends Phaser.Scene {
         console.log(`[Scene1] Tổng số mục tiêu cần tìm: ${this.totalTargets}`);
 
         // Tích hợp SDK
+        // SDK Init
+        this.__sdkInitCircleSelectItem();
+
         game.setTotal(this.totalTargets);
         (window as any).irukaGameState = {
             startTime: Date.now(),
@@ -149,6 +161,9 @@ export default class Scene1 extends Phaser.Scene {
             window.gameScene = undefined;
         }
 
+        // 5. Dọn dẹp SDK
+        this.__sdkFinalizeAsQuit();
+
         console.log("Scene1: Đã dọn dẹp tài nguyên.");
     }
 
@@ -186,6 +201,10 @@ export default class Scene1 extends Phaser.Scene {
                 this.playIntroSequence();
                 return;
             }
+
+            // SDK Stroke Start
+            console.log(`[SDK Stroke] ⏱️ START at ${Date.now()}`);
+            this.circleTracker?.onStrokeStart?.(Date.now());
 
             this.idleManager.reset();
             this.stopIntro();
@@ -323,6 +342,33 @@ export default class Scene1 extends Phaser.Scene {
         const isSuccess = result.success;
         const failureReason = result.failureReason;
 
+        const path_length_px = this.lassoManager.getPathLengthPx();
+        const ts = Date.now();
+
+        // 1. Lấy ID các vật đã khoanh trúng (dùng index làm ID vì game logic dùng index)
+        const allObjects = this.objectManager.getAllObjects();
+        const enclosed_ids = (result.selectedObjects ?? [])
+            .map((obj: any) => {
+                const idx = allObjects.indexOf(obj);
+                return `obj_${idx}`;
+            });
+
+        // 2. Giả lập ratio
+        const enclosure_ratio: Record<string, number> = {};
+        for (const id of enclosed_ids) enclosure_ratio[id] = 1;
+        
+        // 3. Gửi kết quả cho SDK (LUÔN GỌI dù đúng hay sai)
+        console.log(`[SDK Stroke] 🛑 END with:`, { enclosed_ids, isSuccess, ts });
+        this.circleTracker?.onStrokeEnd?.(
+            { 
+                path_length_px: path_length_px,
+                enclosed_ids, 
+                enclosure_ratio 
+            },
+            ts,
+            isSuccess ? { isCorrect: true, errorCode: null } : { isCorrect: false, errorCode: "WRONG_TARGET" as any }
+        );
+
         if (isSuccess && selectedObjects.length === 1) {
             const target = selectedObjects[0] as Phaser.GameObjects.Image;
             
@@ -372,6 +418,10 @@ export default class Scene1 extends Phaser.Scene {
                 this.lassoManager.disable();
 
                 // --- GAME HUB COMPLETE ---
+                console.log(`[SDK Finalize] 🎉 All targets found, finalizing...`);
+                this.circleTracker?.finalize?.();
+                this.circleTracker = null;
+
                 game.finalizeAttempt();
                 game.finishQuestionTimer(); 
 
@@ -470,7 +520,11 @@ export default class Scene1 extends Phaser.Scene {
         // ⭐ Cleanup animation cũ TRƯỚC KHI tạo hint mới (fix giật hình)
         this.stopActiveHint();
         
+        this.stopActiveHint();
+        
         game.addHint();
+        console.log(`[SDK Hint] 💡 Hint shown`);
+        this.circleTracker?.hint?.(1);
         // Tìm các object đúng mà chưa được khoanh
         const allCorrectAndUnfound = this.objectManager.getAllObjects().filter(obj => 
             this.objectManager.isCorrectAnswer(obj) && 
@@ -574,5 +628,63 @@ export default class Scene1 extends Phaser.Scene {
             this.uiScene.handHint.setVisible(false);
             this.uiScene.handHint.setAlpha(0);
         }
+    }
+
+
+    // =============================================
+    // Phần 5: SDK
+    // =============================================
+
+    private __sdkInitCircleSelectItem() {
+        this.__sdkFinalizeAsQuit();
+        this.itemSeq += 1;
+
+        const allObjects = this.objectManager.getAllObjects();
+        
+        // Selectables: Map to "obj_i"
+        const selectables = allObjects.map((_, idx) => `obj_${idx}`);
+
+        // Correct targets (Find All)
+        // Filter objects that are correct, then map to their index IDs
+        const correct_targets = allObjects
+            .map((obj, idx) => ({ obj, idx }))
+            .filter(({ obj }) => this.objectManager.isCorrectAnswer(obj))
+            .map(({ idx }) => `obj_${idx}`);
+
+        console.log(`[SDK Init] Item Seq: ${this.itemSeq}`);
+        console.log(`  ✅ Selectables:`, selectables);
+        console.log(`  🎯 Correct Targets:`, correct_targets);
+
+        // Cast game to any to avoid type error
+        this.circleTracker = (game as any).createCircleSelectTracker({
+            meta: {
+                item_id: `CIRCLE_SELECT_SO_4_${this.itemSeq}`,
+                item_type: "circle_select",
+                seq: this.itemSeq,
+                run_seq: this.runSeq,
+                difficulty: 1,
+                scene_id: "SCN_CIRCLE_SO_4",
+                scene_seq: 1,
+                scene_type: "circle_select",
+                skill_ids: ["khoanh_so_4_math_001"],
+            },
+            expected: {
+                selectables,
+                correct_targets,
+                min_enclosure_ratio: 0.8,
+            },
+        });
+        console.log(`[SDK Init] Tracker created: itemSeq=${this.itemSeq}, runSeq=${this.runSeq}`);
+    }
+
+    private __sdkFinalizeAsQuit() {
+        const ts = Date.now();
+        if (this.circleTracker) {
+            console.log(`[SDK Finalize] 🚪 Quitting item...`);
+            this.circleTracker.onQuit?.(ts);
+            const result = this.circleTracker.finalize?.();
+            console.log(`[SDK Output] 📊 Item Result:`, JSON.stringify(result, null, 2));
+        }
+        this.circleTracker = null;
     }
 }

@@ -48,7 +48,7 @@ Bạn log thấy:
 ### Nguyên nhân
 Game gọi `tracker.hint()` khi tracker chưa mở attempt → `itemsCore.useHint()` tự mở attempt kiểu “attempt ma”. Sau đó tracker mở attempt lần nữa → attempt trước bị bỏ qua hoặc lệch.
 
-### Fix chuẩn (copy nguyên file này)
+### Fix chuẩn (copy nguyên file này) ** không cần tạo trong dự án của bạn **
 **Sửa file SDK**: `src/core/game/trackers/circleSelectTracker.ts`
 
 ```ts

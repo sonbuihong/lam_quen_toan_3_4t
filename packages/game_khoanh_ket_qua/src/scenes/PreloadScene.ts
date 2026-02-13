@@ -18,6 +18,11 @@ export default class PreloadScene extends Phaser.Scene {
         this.load.image(TextureKeys.imgTopic, 'assets/images/S1/questionImg.png');
         this.load.image(TextureKeys.frameAns, 'assets/images/S1/frameAns.png');
 
+        this.load.image(TextureKeys.Title1, 'assets/images/S1/question1.png');
+        this.load.image(TextureKeys.Title2, 'assets/images/S2/question2.png');
+        this.load.image(TextureKeys.Title3, 'assets/images/S3/question3.png');
+        this.load.image(TextureKeys.Title4, 'assets/images/S4/question4.png');
+
         // --- Scene 1 Assets 1 ---
         this.load.image(TextureKeys.S1, 'assets/images/S1/1.png');
         this.load.image(TextureKeys.S2, 'assets/images/S1/2.png');
