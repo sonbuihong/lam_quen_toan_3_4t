@@ -102,6 +102,13 @@ import { installIrukaE2E } from './e2e/installIrukaE2E';
 
 
       onQuit() {
+        // Finalize tracker trước khi quit session
+        // shutdown() sẽ gọi __sdkFinalizeAsQuit() bên trong
+        const activeScene = gamePhaser?.scene.getScene('Scene1') as any;
+        if (activeScene?.scene?.isActive()) {
+          activeScene.shutdown();
+        }
+
         // QUIT: chốt attempt là quit + gửi complete
         game.finalizeAttempt("quit");
         sdk.complete({

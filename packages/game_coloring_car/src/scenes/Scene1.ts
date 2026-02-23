@@ -26,7 +26,6 @@ export default class Scene1 extends Phaser.Scene {
     // --- QUẢN LÝ LOGIC (MANAGERS) ---
     private paintManager!: PaintManager; // Quản lý việc tô màu, cọ vẽ, canvas
     private idleManager!: IdleManager; // Quản lý thời gian rảnh để hiện gợi ý
-    private fpsCounter!: FPSCounter; // ✅ FPS Counter
 
     // --- QUẢN LÝ TRẠNG THÁI GAME (GAME STATE) ---
     // Map lưu các bộ phận chưa tô xong (Key: ID, Value: Image Object) -> Dùng để random gợi ý
@@ -95,8 +94,8 @@ export default class Scene1 extends Phaser.Scene {
             startTime: Date.now(),
             currentScore: 0,
         };
-        sdk.score(this.score, 0);
-        sdk.progress({ levelIndex: 0, total: 1 });
+        // sdk.score(this.score, 0); // REMOVED: Managed by PaintManager/EndGame
+        // sdk.progress({ levelIndex: 0, total: 1 }); // REMOVED: Managed by PaintManager/EndGame
         game.startQuestionTimer();
 
         this.setupInput(); // Cài đặt sự kiện chạm/vuốt
@@ -108,9 +107,6 @@ export default class Scene1 extends Phaser.Scene {
             this.idleManager.reset();
             if (this.input.keyboard) this.input.keyboard.enabled = true;
         });
-
-        // ✅ HIỂN THỊ FPS
-        // this.fpsCounter = new FPSCounter(this);
 
         // Nếu là restart (không cần chờ tap), chạy intro luôn
         if (!this.isWaitingForIntroStart) {
@@ -135,11 +131,6 @@ export default class Scene1 extends Phaser.Scene {
             this.finishedParts.size < this.totalParts
         ) {
             this.idleManager.update(delta);
-        }
-
-        // Cập nhật FPS
-        if (this.fpsCounter) {
-            this.fpsCounter.update();
         }
     }
 
@@ -341,12 +332,8 @@ export default class Scene1 extends Phaser.Scene {
         game.recordCorrect({ scoreDelta: 1 });
         this.score += 1;
         (window as any).irukaGameState.currentScore = this.score;
-        sdk.score(this.score, 1);
-        sdk.progress({
-            levelIndex: 0,
-            score: this.score,
-            total: 3
-        });
+        // sdk.score(this.score, 1); // REMOVED
+        // sdk.progress({...}); // REMOVED
         game.finishQuestionTimer();
 
 
@@ -393,6 +380,11 @@ export default class Scene1 extends Phaser.Scene {
                 this.scene.start(SceneKeys.EndGame);
             });
             // --- GAME HUB COMPLETE ---
+             // Finalize all paint trackers first
+             if (this.paintManager) {
+                this.paintManager.finalizeAll();
+            }
+
             sdk.requestSave({
                 score: this.score,
                 levelIndex: 0,

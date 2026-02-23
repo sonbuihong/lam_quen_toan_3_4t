@@ -21,19 +21,19 @@ export default class Scene1 extends Phaser.Scene {
     private objectManager!: ObjectManager;
 
     // Logic States
-    private isIntroductionPlayed: boolean = false;
     private idleManager!: IdleManager;
     private handHint!: Phaser.GameObjects.Image;
-    private isWaitingForIntroStart: boolean = true;
+    private isWaitingForIntroStart: boolean = true; // chờ người chơi tap vào màn hình để bắt đầu
     
     // SDK theo dõi trạng thái
     private runSeq = 1;
     private itemSeq = 0;
-    private circleTracker: any = null;
+    private circleTracker: ReturnType<typeof game.createCircleSelectTracker> | null = null;
 
     
     // Tutorial & Hint States
     private isIntroActive: boolean = false;
+    private isGameplayStarted: boolean = false;
     private activeHintTween: Phaser.Tweens.Tween | null = null;
     private activeHintTarget: Phaser.GameObjects.Image | null = null;
 
@@ -46,6 +46,7 @@ export default class Scene1 extends Phaser.Scene {
         
         // Reset Logic States
         this.isIntroActive = false;
+        this.isGameplayStarted = false;
         this.activeHintTween = null;
         this.activeHintTarget = null;
         this.handHint = undefined as any; // Force reset reference
@@ -66,6 +67,10 @@ export default class Scene1 extends Phaser.Scene {
 
     create() {
         showGameButtons();
+
+        // Đăng ký shutdown handler với Phaser lifecycle
+        // Khi scene.stop() được gọi, Phaser sẽ emit 'shutdown' event
+        this.events.once('shutdown', this.shutdown, this);
         
         this.setupSystem();
         this.setupBackgroundAndAudio();
@@ -73,8 +78,6 @@ export default class Scene1 extends Phaser.Scene {
 
         // 4. Load Level Data & Spawn Objects
         const levelConfig = this.cache.json.get(DataKeys.LevelS1Config);
-        this.objectManager.spawnObjectsFromConfig(levelConfig);
-
         this.objectManager.spawnObjectsFromConfig(levelConfig);
 
         // SDK Init
@@ -114,17 +117,15 @@ export default class Scene1 extends Phaser.Scene {
     }
 
     shutdown() {
-        // 1. Dọn dẹp Âm thanh (Audio Cleanup)
-        if (this.bgm) {
-            this.bgm.stop();
-        }
-        // Dừng tất cả âm thanh SFX khác đang chạy qua Howler
-        AudioManager.stopAll();
+        // Audio KHÔNG dừng ở đây - để BGM tiếp tục khi chuyển EndGame.
+        // Các trường hợp cần stop (restart, quit) đã xử lý riêng trong main.ts.
 
         // 2. Dọn dẹp Managers (Managers Cleanup)
         if (this.lassoManager) {
             this.lassoManager.disable();
-             // Nếu có hàm destroy thì gọi luôn tại đây để chắc chắn
+        }
+        if (this.objectManager) {
+            this.objectManager.clearObjects();
         }
         if (this.idleManager) {
             this.idleManager.stop();
@@ -234,7 +235,9 @@ export default class Scene1 extends Phaser.Scene {
 
     private stopIntro() {
         this.isIntroActive = false;
-        this.idleManager.start();
+
+        // Khi user skip intro, kích hoạt gameplay ngay
+        this.enableGameplay();
 
         if (this.handHint) {
             this.handHint.setAlpha(0).setPosition(-200, -200);
@@ -291,47 +294,59 @@ export default class Scene1 extends Phaser.Scene {
         const delay = GameConstants.SCENE1.TIMING.GAME_START_DELAY;
         
         this.time.delayedCall(delay, () => {
-            // Kích hoạt tính năng vẽ Lasso
-            this.lassoManager.enable();
-            
-            // Bắt đầu đếm Idle ngay khi vào game (hoặc sau intro)
-            this.idleManager.start();
-            
+            this.enableGameplay();
             console.log("Gameplay enabled after delay.");
-        });
-
-        // Khi người chơi chạm vào màn hình -> Reset Idle + Ẩn gợi ý
-        this.input.on('pointerdown', () => {
-            // Chỉ reset khi game đã bắt đầu (IdleManager đã chạy)
-            this.idleManager.reset();
-            this.stopActiveHint();
         });
     }
 
-    private handleLassoSelection(polygon: Phaser.Geom.Polygon) {
-        // 1. Validate Selection using Utility Class
-        const result = LassoValidation.validateSelection(polygon, this.objectManager);
-        
-        const selectedObjects = result.selectedObjects;
-        const isSuccess = result.success;
-        const failureReason = result.failureReason;
+    /**
+     * Kích hoạt gameplay (idempotent - chỉ chạy 1 lần).
+     * Gọi từ 2 nơi: setupGameplay() (sau delay) hoặc stopIntro() (user skip intro).
+     */
+    private enableGameplay() {
+        if (this.isGameplayStarted) return;
+        this.isGameplayStarted = true;
 
+        this.lassoManager.enable();
+        this.idleManager.start();
+    }
+
+    private handleLassoSelection(polygon: Phaser.Geom.Polygon) {
         const path_length_px = this.lassoManager.getPathLengthPx();
+        const pointCount = this.lassoManager.getPointCount();
         const ts = Date.now();
 
-        // 1. Lấy ID các vật đã khoanh trúng
-        const enclosed_ids = (result.selectedObjects ?? [])
+        // Guard: Path quá ngắn = bé thả tay quá sớm, chưa khoanh đủ vòng
+        const { MIN_PATH_LENGTH_PX, MIN_POINTS } = GameConstants.LASSO;
+        if (path_length_px < MIN_PATH_LENGTH_PX || pointCount < MIN_POINTS) {
+            this.circleTracker?.onStrokeEnd?.(
+                { path_length_px, enclosed_ids: [], enclosure_ratio: {} },
+                ts,
+                { isCorrect: false, errorCode: GameConstants.ERROR_CODES.RELEASE_TOO_EARLY as any }
+            );
+            AudioManager.play("sfx-wrong");
+            return;
+        }
+
+        // 1. Validate Selection using Utility Class
+        const result1 = LassoValidation.validateSelection(polygon, this.objectManager);
+        
+        const selectedObjects = result1.selectedObjects;
+        const isSuccess = result1.success;
+        const failureReason = result1.failureReason;
+
+        // Lấy ID các vật đã khoanh trúng
+        const enclosed_ids = (result1.selectedObjects ?? [])
             .map((obj: any, idx: number) => {
-                const id = obj.getData('textureKey'); // Dùng textureKey làm ID cho game này
+                const id = obj.getData('textureKey');
                 return id ? id : `obj_${idx}`;
             });
 
-        // 2. Giả lập ratio
+        // Giả lập ratio
         const enclosure_ratio: Record<string, number> = {};
         for (const id of enclosed_ids) enclosure_ratio[id] = 1;
         
-        // 3. Gửi kết quả cho SDK (LUÔN GỌI dù đúng hay sai)
-        console.log(`[SDK Stroke] 🛑 END with:`, { enclosed_ids, isSuccess, ts });
+        // Gửi kết quả cho SDK (LUÔN GỌI dù đúng hay sai)
         this.circleTracker?.onStrokeEnd?.(
             { 
                 path_length_px: path_length_px,
@@ -339,7 +354,9 @@ export default class Scene1 extends Phaser.Scene {
                 enclosure_ratio 
             },
             ts,
-            isSuccess ? { isCorrect: true, errorCode: null } : { isCorrect: false, errorCode: "WRONG_TARGET" as any }
+            isSuccess 
+                ? { isCorrect: true, errorCode: null } 
+                : { isCorrect: false, errorCode: GameConstants.ERROR_CODES.WRONG_TARGET as any }
         );
 
         if (isSuccess) {
@@ -354,7 +371,9 @@ export default class Scene1 extends Phaser.Scene {
                 graphics.strokeCircle(image.x, image.y, radius);
             });
 
-            console.log("✅ Khoanh ĐÚNG!");
+            console.log("Khoanh ĐÚNG!");
+            AudioManager.stop('hint');
+            AudioManager.stop('voice_intro');
             AudioManager.play("sfx-correct");
             AudioManager.play("sfx-ting");
             this.objectManager.highlightObjects(selectedObjects as Phaser.GameObjects.Image[], true);
@@ -371,9 +390,11 @@ export default class Scene1 extends Phaser.Scene {
             this.lassoManager.disable();
 
             // --- GAME HUB COMPLETE ---
-            // --- GAME HUB COMPLETE ---
-            console.log(`[SDK Finalize] 🎉 Final level complete, finalizing...`);
-            this.circleTracker?.finalize?.();
+            console.log(`[SDK Finalize] Final level complete, finalizing...`);
+            if (this.circleTracker) {
+                const result = this.circleTracker.finalize();
+                console.log(`[SDK Output] Item Result:`, JSON.stringify(result, null, 2));
+            }
             this.circleTracker = null;
             game.finalizeAttempt();
 
@@ -446,19 +467,6 @@ export default class Scene1 extends Phaser.Scene {
         
         this.handHint.setPosition(startX, startY);
 
-        const tweensChain: any[] = [];
-        
-        // 1. Hiện ra
-        tweensChain.push({
-            targets: this.handHint,
-            alpha: 1,
-            duration: 500
-        });
-
-        // 2. Xoay 2 vòng
-        // REWRITE: Dùng logic đơn giản hơn cho Tutorial:
-        // Move to start -> Fade In -> Circle Tween -> Fade Out -> Loop
-        
         this.handHint.setAlpha(1);
         
         // Tween thay đổi góc
@@ -497,8 +505,11 @@ export default class Scene1 extends Phaser.Scene {
      * Gợi ý khi rảnh (Idle Hint)
      */
     private showHint() {
+        // Không hiện hint khi user đang vẽ lasso
+        if (this.lassoManager.isCurrentlyDrawing) return;
+
         game.addHint();
-        console.log(`[SDK Hint] 💡 Hint shown`);
+        console.log(`[SDK Hint] Hint shown`);
         this.circleTracker?.hint?.(1);
 
         const ball = this.objectManager.getAllObjects().find(obj => obj.texture.key === TextureKeys.S1_Ball);
@@ -508,13 +519,17 @@ export default class Scene1 extends Phaser.Scene {
 
         // Visual 1: Nhấp nháy bộ phận đó
         this.activeHintTarget = ball as Phaser.GameObjects.Image;
+        const originalScale = this.activeHintTarget.scale;
         this.activeHintTween = this.tweens.add({
             targets: this.activeHintTarget,
-            scale: { from: this.activeHintTarget.scale, to: this.activeHintTarget.scale * 1.1 },
+            scale: { from: originalScale, to: originalScale * 1.1 },
             duration: 500,
             yoyo: true,
             repeat: 2,
             onComplete: () => {
+                if (this.activeHintTarget) {
+                    this.activeHintTarget.setScale(originalScale);
+                }
                 this.activeHintTween = null;
                 this.activeHintTarget = null;
                 this.idleManager.reset();
@@ -562,7 +577,6 @@ export default class Scene1 extends Phaser.Scene {
 
         if (this.activeHintTarget) {
             this.tweens.killTweensOf(this.activeHintTarget);
-            this.activeHintTarget.setScale(this.activeHintTarget.scale);
             this.activeHintTarget = null;
         }
 
@@ -601,8 +615,7 @@ export default class Scene1 extends Phaser.Scene {
         console.log(`  ✅ Selectables:`, selectables);
         console.log(`  🎯 Correct Targets:`, correct_targets);
 
-        // Cast game to any to avoid type error
-        this.circleTracker = (game as any).createCircleSelectTracker({
+        this.circleTracker = game.createCircleSelectTracker({
             meta: {
                 item_id: `CIRCLE_SELECT_SO_1_${this.itemSeq}`,
                 item_type: "circle_select",

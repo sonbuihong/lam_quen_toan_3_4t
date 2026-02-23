@@ -370,8 +370,8 @@ export class PaintManager {
                         regions_result: [
                             {
                                 region_id: id,
-                                area_px: total, // Approximate with checked pixels
-                                paint_in_px: match,
+                                area_px: this.paintTrackers.get(id)?.expected?.regions[0]?.area_px || (total * 16), // ✅ Use config value or scaled back approximation
+                                paint_in_px: match * 16, // ✅ Scale to match original resolution
                                 paint_out_px: 0,
                                 coverage: percentage,
                                 spill_ratio: 0,
@@ -438,7 +438,7 @@ export class PaintManager {
             const maxSpill = hitArea.getData("max_spill_ratio") ?? 0;
             
             // Try to guess scene_id from partId or scene manager if possible, hardcode for now or pass in
-            const sceneId = "SCN_PAINT_GENERIC"; 
+            const sceneId = "SCN_COLORING_CAR"; 
 
             t = (game as any).createPaintTracker({
                 meta: {

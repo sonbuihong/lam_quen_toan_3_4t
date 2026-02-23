@@ -8,7 +8,6 @@ import { resetVoiceState } from '../utils/rotateOrientation';
 export default class EndGameScene extends Phaser.Scene {
     private containerEl: HTMLElement | null = null;
     private confettiEvent?: Phaser.Time.TimerEvent;
-    StopAllSounds: any;
 
     constructor() { super('EndGameScene'); }
 
@@ -68,8 +67,9 @@ export default class EndGameScene extends Phaser.Scene {
                 repeat: -1,
                 ease: 'Sine.easeInOut',
             });
+        }
         
-            //  === NÚT CHỨC NĂNG ===
+        //  === NÚT CHỨC NĂNG ===
             const btnScale = Math.min(w, h) / 1280;
             const spacing = 250 * btnScale;
             
@@ -129,7 +129,6 @@ export default class EndGameScene extends Phaser.Scene {
 
             hideGameButtons();
             this.createConfettiEffect();
-        }
     }
     
     private createConfettiEffect(): void {

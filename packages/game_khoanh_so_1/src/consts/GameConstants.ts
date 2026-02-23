@@ -6,6 +6,25 @@ import { TextureKeys } from './Keys';
  */
 export const GameConstants = {
     // =========================================
+    // MÃ LỖI SDK (ERROR CODES)
+    // =========================================
+    ERROR_CODES: {
+        WRONG_TARGET: "WRONG_TARGET",
+        RELEASE_TOO_EARLY: "RELEASE_TOO_EARLY",
+        RELEASE_TOO_LATE: "RELEASE_TOO_LATE",
+        WRONG_TARGET_HOLD: "WRONG_TARGET_HOLD",
+        TIMEOUT: "TIMEOUT",
+    },
+    // =========================================
+    // CẤU HÌNH LASSO
+    // =========================================
+    LASSO: {
+        /** Path ngắn hơn giá trị này (px) = thả tay quá sớm */
+        MIN_PATH_LENGTH_PX: 80,
+        /** Ít hơn số điểm này = chưa khoanh thành vòng */
+        MIN_POINTS: 5,
+    },
+    // =========================================
     // CẤU HÌNH CHUNG (SYSTEM)
     // =========================================
     DEBUG_MODE: true, // Set false khi release
@@ -35,13 +54,6 @@ export const GameConstants = {
             DECOR_Y: 0.02,
             // BẢNG
             BOARD_OFFSET: 0.03,
-            /** Vị trí X của cột màu (Tỉ lệ màn hình) - Bên phải */
-            PALETTE_X: 0.91,
-            /** Vị trí Y bắt đầu của nút màu đầu tiên (Tỉ lệ màn hình) */
-            PALETTE_START_Y: 0.25, // Bắt đầu từ trên xuống
-            /** Khoảng cách dọc giữa các nút màu (Tỉ lệ màn hình) */
-            PALETTE_SPACING_Y: 0.13,
-            
             // Tọa độ đích cho bàn tay hướng dẫn Intro
             HAND_INTRO_END_X: 0.42,
             HAND_INTRO_END_Y: 0.4,
@@ -56,7 +68,7 @@ export const GameConstants = {
             /** Thời gian nhấp nháy khi tô xong 1 phần (ms) */
             AUTO_FILL: 100,
             /** Thời gian chờ trước khi cho phép tương tác lúc vào game (ms) */
-            GAME_START_DELAY: 3000,
+            GAME_START_DELAY: 1000,
         },
         INTRO_HAND: {
             MOVE: 600,

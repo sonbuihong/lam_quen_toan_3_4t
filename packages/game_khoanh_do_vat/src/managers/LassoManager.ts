@@ -30,7 +30,12 @@ export class LassoManager {
     constructor(scene: Phaser.Scene) {
         this.scene = scene;
         this.graphics = this.scene.add.graphics();
-        this.graphics.setDepth(100); // Đảm bảo vẽ đè lên trên các vật thể
+        this.graphics.setDepth(100);
+    }
+
+    /** Cho phép Scene kiểm tra xem user đang vẽ lasso hay không */
+    public get isCurrentlyDrawing(): boolean {
+        return this.isDrawing;
     }
 
     /**
@@ -151,6 +156,13 @@ export class LassoManager {
         this.graphics.clear();
         this.points = [];
         this.isDrawing = false;
+    }
+
+    /**
+     * Trả về số điểm trong nét vẽ hiện tại
+     */
+    public getPointCount(): number {
+        return this.points.length;
     }
 
     public getPathLengthPx(): number {

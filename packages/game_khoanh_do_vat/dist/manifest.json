@@ -1,7 +1,7 @@
 {
-  "id": "game_circle_ball",
-  "name": "Game Khoanh Số Quả Bóng",
-  "short_name": "Khoanh Số Quả Bóng",
+  "id": "game_circle_more_items",
+  "name": "Game Khoanh Đồ Vật Nhiều Hơn",
+  "short_name": "Khoanh Đồ Vật Nhiều Hơn",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",

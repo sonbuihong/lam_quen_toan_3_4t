@@ -68,6 +68,7 @@ export default class EndGameScene extends Phaser.Scene {
                 repeat: -1,
                 ease: 'Sine.easeInOut',
             });
+        }
         
         //  === NÚT CHỨC NĂNG ===
         const btnScale = Math.min(w, h) / 1280;
@@ -129,7 +130,6 @@ export default class EndGameScene extends Phaser.Scene {
 
         hideGameButtons();
         this.createConfettiEffect();
-    }      
     }
     
     private createConfettiEffect(): void {

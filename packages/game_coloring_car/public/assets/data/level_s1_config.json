@@ -4,10 +4,43 @@
     "outlineKey": "outline",
     "baseX_pct": 0.5,
     "baseY_pct": 0.5,
-    "parts": [
-      { "key": "1", "offsetX": 0, "offsetY": 0, "scale": 0.95, "hintPoints": [{"x": 0, "y": 0}]},
-      { "key": "2", "offsetX": 0, "offsetY": 0, "scale": 0.95, "hintPoints": [{"x": -100, "y": -200}, {"x": 150, "y": -200}] },
-      { "key": "3", "offsetX": 0, "offsetY": 0, "scale": 0.95, "hintPoints": [{"x": -350, "y": 200},{"x": 350, "y": 200}]}
+  "parts": [
+      { 
+        "key": "1", 
+        "offsetX": 0, 
+        "offsetY": 0, 
+        "scale": 0.95, 
+        "hintPoints": [{"x": 0, "y": 0}],
+        "area_px": 295581,
+        "allowed_colors": ["#E05136", "#FFE007", "#499343", "#539BD7", "#FDAB12", "#E97090", "#000000"],
+        "correct_color": null,
+        "min_region_coverage": 0.9,
+        "max_spill_ratio": 0
+      },
+      { 
+        "key": "2", 
+        "offsetX": 0, 
+        "offsetY": 0, 
+        "scale": 0.95, 
+        "hintPoints": [{"x": -100, "y": -200}, {"x": 150, "y": -200}],
+        "area_px": 98609,
+        "allowed_colors": ["any"],
+        "correct_color": null,
+        "min_region_coverage": 0.9,
+        "max_spill_ratio": 0
+      },
+      { 
+        "key": "3", 
+        "offsetX": 0, 
+        "offsetY": 0, 
+        "scale": 0.95, 
+        "hintPoints": [{"x": -350, "y": 200},{"x": 350, "y": 200}],
+        "area_px": 140424,
+        "allowed_colors": ["any"],
+        "correct_color": null,
+        "min_region_coverage": 0.9,
+        "max_spill_ratio": 0
+      }
     ]
   }
 }             

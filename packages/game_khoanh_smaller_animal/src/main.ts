@@ -102,7 +102,11 @@ import { installIrukaE2E } from './e2e/installIrukaE2E';
 
 
       onQuit() {
-        // QUIT: chốt attempt là quit + gửi complete
+        const activeScene = gamePhaser?.scene.getScene('Scene1') as any;
+        if (activeScene?.scene?.isActive()) {
+          activeScene.shutdown();
+        }
+
         game.finalizeAttempt("quit");
         sdk.complete({
           timeMs: Date.now() - ((window as any).irukaGameState?.startTime ?? Date.now()),

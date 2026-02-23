@@ -4,24 +4,21 @@ import { game } from "@iruka-edu/mini-game-sdk";
 import AudioManager from '../audio/AudioManager';
 import { changeBackground } from '../utils/BackgroundManager';
 import { resetVoiceState } from '../utils/rotateOrientation';
+import { TextureKeys } from '../consts/Keys';
 
 export default class EndGameScene extends Phaser.Scene {
     private containerEl: HTMLElement | null = null;
     private confettiEvent?: Phaser.Time.TimerEvent;
-    StopAllSounds: any;
 
     constructor() { super('EndGameScene'); }
 
     
 
     preload() {
-        this.load.image('icon', 'assets/images/ui/icon_end.png');
-        
-        this.load.image('banner_congrat', 'assets/images/bg/banner_congrat.png');
-
-        this.load.image('btn_reset', 'assets/images/ui/btn_reset.png'); 
-
-        this.load.image('btn_exit', 'assets/images/ui/btn_exit.png');
+        this.load.image(TextureKeys.End_Icon, 'assets/images/ui/icon_end.png');
+        this.load.image(TextureKeys.End_BannerCongrat, 'assets/images/bg/banner_congrat.png');
+        this.load.image(TextureKeys.BtnReset, 'assets/images/ui/btn_reset.png');
+        this.load.image(TextureKeys.BtnExit, 'assets/images/ui/btn_exit.png');
     }
 
     create() {
@@ -29,7 +26,6 @@ export default class EndGameScene extends Phaser.Scene {
         const w = this.scale.width; 
         const h = this.scale.height;
         AudioManager.loadAll();
-        // this.sound.stopAll();
         AudioManager.play('complete');
 
         this.time.delayedCall(1500, () => {
@@ -40,14 +36,14 @@ export default class EndGameScene extends Phaser.Scene {
 
         // Banner
         this.add
-            .image(w/2, h/2 - h * 0.12, 'banner_congrat')
+            .image(w/2, h/2 - h * 0.12, TextureKeys.End_BannerCongrat)
             .setOrigin(0.5)
             .setDepth(100)
-            .setDisplaySize(w * 0.9, h * 0.9); // full màn
+            .setDisplaySize(w * 0.9, h * 0.9);
             
         // Icon 
-        if (this.textures.exists('icon')) {
-            const icon = this.add.image(w / 2, h / 2 - 150, 'icon');
+        if (this.textures.exists(TextureKeys.End_Icon)) {
+            const icon = this.add.image(w / 2, h / 2 - 150, TextureKeys.End_Icon);
             icon.setScale(0.5);
             icon.setDepth(1005);
 
@@ -68,6 +64,7 @@ export default class EndGameScene extends Phaser.Scene {
                 repeat: -1,
                 ease: 'Sine.easeInOut',
             });
+        }
         
         //  === NÚT CHỨC NĂNG ===
         const btnScale = Math.min(w, h) / 1280;
@@ -75,7 +72,7 @@ export default class EndGameScene extends Phaser.Scene {
         
         // Nút chơi lại (Bên trái)
         const replayBtn = this.add
-            .image(w / 2 - spacing, h / 2 + h * 0.2, 'btn_reset')
+            .image(w / 2 - spacing, h / 2 + h * 0.2, TextureKeys.BtnReset)
             .setOrigin(0.5)
             .setScale(btnScale)
             .setDepth(101)
@@ -95,7 +92,7 @@ export default class EndGameScene extends Phaser.Scene {
 
         // 4. Nút Exit
         const exitBtn = this.add
-            .image(w / 2 + spacing, h / 2 + h * 0.2, 'btn_exit')
+            .image(w / 2 + spacing, h / 2 + h * 0.2, TextureKeys.BtnExit)
             .setOrigin(0.5)
             .setScale(btnScale)
             .setDepth(101)
@@ -103,10 +100,10 @@ export default class EndGameScene extends Phaser.Scene {
 
         exitBtn.on('pointerdown', () => {
             AudioManager.play('sfx-click');
-            AudioManager.stopAll();
-            this.stopConfetti(); //
+            // AudioManager.stopAll();
+            this.stopConfetti();
 
-            // ✅ Gửi COMPLETE cho Game Hub
+            // Gửi COMPLETE cho Game Hub
             const state = (window as any).irukaGameState || {};
             const timeMs = state.startTime ? Date.now() - state.startTime : 0;
             
@@ -128,8 +125,7 @@ export default class EndGameScene extends Phaser.Scene {
         });
 
         hideGameButtons();
-        this.createConfettiEffect();
-    }      
+        this.createConfettiEffect();   
     }
     
     private createConfettiEffect(): void {

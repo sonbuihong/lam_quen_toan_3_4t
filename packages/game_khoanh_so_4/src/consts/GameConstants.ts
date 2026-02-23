@@ -6,6 +6,25 @@ import { TextureKeys } from './Keys';
  */
 export const GameConstants = {
     // =========================================
+    // MÃ LỖI SDK (ERROR CODES)
+    // =========================================
+    ERROR_CODES: {
+        WRONG_TARGET: "WRONG_TARGET",
+        RELEASE_TOO_EARLY: "RELEASE_TOO_EARLY",
+        RELEASE_TOO_LATE: "RELEASE_TOO_LATE",
+        WRONG_TARGET_HOLD: "WRONG_TARGET_HOLD",
+        TIMEOUT: "TIMEOUT",
+    },
+    // =========================================
+    // CẤU HÌNH LASSO
+    // =========================================
+    LASSO: {
+        /** Path ngắn hơn giá trị này (px) = thả tay quá sớm */
+        MIN_PATH_LENGTH_PX: 80,
+        /** Ít hơn số điểm này = chưa khoanh thành vòng */
+        MIN_POINTS: 5,
+    },
+    // =========================================
     // CẤU HÌNH CHUNG (SYSTEM)
     // =========================================
     DEBUG_MODE: true, // Set false khi release
