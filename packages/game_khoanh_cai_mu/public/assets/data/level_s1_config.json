@@ -1,0 +1,27 @@
+{
+    "answers": [
+        { "textureKey": "ans1", "baseX_pct": 0.3, "baseY_pct": 0.8, "baseScale": 0.7 },
+        { "textureKey": "ans2", "baseX_pct": 0.4, "baseY_pct": 0.8, "baseScale": 0.7 },
+        { "textureKey": "ans3", "baseX_pct": 0.5, "baseY_pct": 0.8, "baseScale": 0.7 },
+        { "textureKey": "ans4", "baseX_pct": 0.6, "baseY_pct": 0.8, "baseScale": 0.7 },
+        { "textureKey": "ans5", "baseX_pct": 0.7, "baseY_pct": 0.8, "baseScale": 0.7 }
+    ],
+    "levels": [
+        {
+            "correctKey": ["image1", "image1"],
+            "correctAnswer": "ans2",
+            "images": [
+                { "textureKey": "image1", "baseX_pct": 0.35, "baseY_pct": 0.4, "baseScale": 0.7 },
+                { "textureKey": "image1", "baseX_pct": 0.65, "baseY_pct": 0.4, "baseScale": 0.7 }
+            ]
+        },
+        {
+            "correctKey": ["image2", "image3"],
+            "correctAnswer": "ans3",
+            "images": [
+                { "textureKey": "image2", "baseX_pct": 0.35, "baseY_pct": 0.4, "baseScale": 0.7 },
+                { "textureKey": "image3", "baseX_pct": 0.65, "baseY_pct": 0.4, "baseScale": 0.7 }
+            ]
+        }
+    ]
+}
