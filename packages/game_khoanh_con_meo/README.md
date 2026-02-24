@@ -1,4 +1,4 @@
-# Game Khoanh Và Nối Số Lượng 
+# Game Khoanh Và Nối Số Lượng
 
 ## 1. Mô tả & Luật chơi
 
