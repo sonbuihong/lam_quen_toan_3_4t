@@ -1,0 +1,24 @@
+{
+    "levels": [
+        {
+            "answers": [
+                { "textureKey": "ans1", "baseX_pct": 0.65, "baseY_pct": 0.25, "baseScale": 0.7 },
+                { "textureKey": "ans2", "baseX_pct": 0.65, "baseY_pct": 0.45, "baseScale": 0.7 },
+                { "textureKey": "ans3", "baseX_pct": 0.65, "baseY_pct": 0.65, "baseScale": 0.7 },
+                { "textureKey": "ans4", "baseX_pct": 0.65, "baseY_pct": 0.85, "baseScale": 0.7 }
+            ],
+            "images": [
+                { "textureKey": "image1", "baseX_pct": 0.35, "baseY_pct": 0.25, "baseScale": 0.7 },
+                { "textureKey": "image2", "baseX_pct": 0.35, "baseY_pct": 0.45, "baseScale": 0.7 },
+                { "textureKey": "image3", "baseX_pct": 0.35, "baseY_pct": 0.65, "baseScale": 0.7 },
+                { "textureKey": "image4", "baseX_pct": 0.35, "baseY_pct": 0.85, "baseScale": 0.7 }
+            ],
+            "pairs": [
+                { "image": "image1", "answer": "ans2" },
+                { "image": "image2", "answer": "ans3" },
+                { "image": "image3", "answer": "ans1" },
+                { "image": "image4", "answer": "ans4" }
+            ]
+        }
+    ]
+}
