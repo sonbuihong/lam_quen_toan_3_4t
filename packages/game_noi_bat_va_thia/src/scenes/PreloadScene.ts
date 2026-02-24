@@ -52,7 +52,7 @@ export default class PreloadScene extends Phaser.Scene {
         // Vẫn gọi load ngầm để cache sau này (nếu muốn)
         const essentials = [
             AudioKeys.VoiceIntro,
-            AudioKeys.VoiceIntro3,
+            AudioKeys.VoiceIntro2,
             'sfx-correct', 
             'sfx-ting', 
             'sfx-wrong'
