@@ -1,0 +1,54 @@
+{
+    "answers": [
+        { "textureKey": "ans1", "baseX_pct": 0.3, "baseY_pct": 0.8, "baseScale": 0.7 },
+        { "textureKey": "ans2", "baseX_pct": 0.4, "baseY_pct": 0.8, "baseScale": 0.7 },
+        { "textureKey": "ans3", "baseX_pct": 0.5, "baseY_pct": 0.8, "baseScale": 0.7 },
+        { "textureKey": "ans4", "baseX_pct": 0.6, "baseY_pct": 0.8, "baseScale": 0.7 },
+        { "textureKey": "ans5", "baseX_pct": 0.7, "baseY_pct": 0.8, "baseScale": 0.7 }
+    ],
+    "levels": [
+        {
+            "correctKey": ["hitbox1_left", "hitbox1_right"],
+            "images": [
+                { "textureKey": "image1", "baseX_pct": 0.5, "baseY_pct": 0.5, "baseScale": 0.7, "isDecorative": true },
+                { "textureKey": "ans4", 
+                    "id": "hitbox1_left", 
+                    "baseX_pct": 0.42, 
+                    "baseY_pct": 0.47, 
+                    "baseScaleX": 3, 
+                    "baseScaleY": 1.4, 
+                    "isHiddenHitbox": true 
+                },
+                { "textureKey": "ans1", 
+                    "id": "hitbox1_right", 
+                    "baseX_pct": 0.7, 
+                    "baseY_pct": 0.44, 
+                    "baseScale": 1.5, 
+                    "isHiddenHitbox": true 
+                }
+            ]
+        },
+        {
+            "correctKey": ["hitbox2_left", "hitbox2_right"],
+            "images": [
+                { "textureKey": "image2", "baseX_pct": 0.5, "baseY_pct": 0.45, "baseScale": 0.6, "isDecorative": true },
+                { "textureKey": "ans3", 
+                    "id": "hitbox2_left", 
+                    "baseX_pct": 0.45, 
+                    "baseY_pct": 0.4,
+                    "baseScaleX": 1,
+                    "baseScaleY": 3.5,
+                    "angle": 55,
+                    "isHiddenHitbox": true 
+                },
+                { "textureKey": "ans1", 
+                    "id": "hitbox2_right", 
+                    "baseX_pct": 0.63, 
+                    "baseY_pct": 0.45,
+                    "baseScale": 1, 
+                    "isHiddenHitbox": true 
+                }
+            ]
+        }
+    ]
+}
