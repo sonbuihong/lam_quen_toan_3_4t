@@ -1,0 +1,34 @@
+{
+    "levels": [
+        {
+            "answers": [
+                { "textureKey": "ans1", "baseX_pct": 0.65, "baseY_pct": 0.8, "baseScale": 0.7 },
+                { "textureKey": "ans2", "baseX_pct": 0.65, "baseY_pct": 0.3, "baseScale": 0.7 },
+                { "textureKey": "ans3", "baseX_pct": 0.65, "baseY_pct": 0.55, "baseScale": 0.7 }
+            ],
+            "images": [
+                { "textureKey": "image1", "baseX_pct": 0.35, "baseY_pct": 0.3, "baseScale": 0.7 },
+                { "textureKey": "image2", "baseX_pct": 0.35, "baseY_pct": 0.55, "baseScale": 0.7 },
+                { "textureKey": "image3", "baseX_pct": 0.35, "baseY_pct": 0.8, "baseScale": 0.7 }
+            ],
+            "pairs": [
+                { "image": "image1", "answer": "ans1" },
+                { "image": "image2", "answer": "ans2" },
+                { "image": "image3", "answer": "ans3" }
+            ]
+        },
+        {
+            "answers": [
+                { "textureKey": "ans4", "baseX_pct": 0.65, "baseY_pct": 0.3, "baseScale": 0.6 },
+                { "textureKey": "ans5", "baseX_pct": 0.65, "baseY_pct": 0.55, "baseScale": 0.6 },
+                { "textureKey": "ans6", "baseX_pct": 0.7, "baseY_pct": 0.8, "baseScale": 0.6 }
+            ],
+            "images": [
+                { "textureKey": "image4", "baseX_pct": 0.45, "baseY_pct": 0.33, "baseScale": 0.7 },
+                { "textureKey": "image5", "baseX_pct": 0.3, "baseY_pct": 0.55, "baseScale": 0.7 },
+                { "textureKey": "image6", "baseX_pct": 0.48, "baseY_pct": 0.73, "baseScale": 0.7 }
+            ],
+            "matchMode": "any"
+        }
+    ]
+}
