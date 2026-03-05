@@ -1,57 +1,44 @@
 import { Howl, Howler } from 'howler';
 
-// 1. Định nghĩa Interface cho cấu hình âm thanh
 interface SoundConfig {
     src: string;
     loop?: boolean;
     volume?: number;
 }
 
-//Đường dẫn gốc 
 const BASE_PATH = 'assets/audio/';
 
-// Ánh xạ ID âm thanh và cấu hình chi tiết
+// Anh xa ID am thanh va cau hinh chi tiet
 const SOUND_MAP: Record<string, SoundConfig> = {
-
-    // ---- SFX Chung ----
+    // SFX Chung
     'sfx-correct': { src: `${BASE_PATH}sfx/correct_answer.mp3`, volume: 1.0 },
     'sfx-correct_s2': { src: `${BASE_PATH}sfx/correct_color.mp3`, volume: 1.0 },
     'sfx-wrong': { src: `${BASE_PATH}sfx/wrong.mp3`, volume: 0.5 },
     'sfx-click': { src: `${BASE_PATH}sfx/click.mp3`, volume: 0.5 },
     'sfx-ting': { src: `${BASE_PATH}sfx/correct.mp3`, volume: 0.6 },
 
-    // ---- Prompt Voice ----
+    // Prompt Voice
     'voice-rotate': { src: `${BASE_PATH}prompt/rotate.mp3`, volume: 0.8 },
     'voice_intro_s2': { src: `${BASE_PATH}prompt/instruction.mp3`, volume: 1 },
     'hint': { src: `${BASE_PATH}prompt/hint.mp3`, volume: 1.0 },
 
-    // ---- Correct Answer Variations ----
+    // EndGame SFX
     'complete': { src: `${BASE_PATH}sfx/complete.mp3`, volume: 1.0 },
     'fireworks': { src: `${BASE_PATH}sfx/fireworks.mp3`, volume: 1.0 },
     'applause': { src: `${BASE_PATH}sfx/applause.mp3`, volume: 1.0 },
-
-
 };
 
-
-
 class AudioManager {
-    // Khai báo kiểu dữ liệu cho Map chứa các đối tượng Howl
     private sounds: Record<string, Howl> = {};
     private isLoaded: boolean = false;
 
     constructor() {
-        // Cấu hình quan trọng cho iOS
         Howler.autoUnlock = true;
         Howler.volume(1.0);
     }
 
-    /**
-     * Tải tất cả âm thanh
-     * @returns {Promise<void>}
-     */
+    /** Tai tat ca am thanh trong SOUND_MAP */
     loadAll(): Promise<void> {
-
         if (this.isLoaded) {
             return Promise.resolve();
         }
@@ -70,8 +57,7 @@ class AudioManager {
                     src: [config.src],
                     loop: config.loop || false,
                     volume: config.volume || 1.0,
-                    html5: true, // Cần thiết cho iOS
-
+                    html5: true,
                     onload: () => {
                         loadedCount++;
                         if (loadedCount === total) {
@@ -79,17 +65,8 @@ class AudioManager {
                             resolve();
                         }
                     },
-                    onloaderror: (id: number, error: unknown) => {
-                        // Chúng ta vẫn có thể chuyển nó sang string để ghi log nếu muốn
-                        const errorMessage =
-                            error instanceof Error
-                                ? error.message
-                                : String(error);
-
-                        console.error(
-                            `[Howler Load Error] Key: ${key}, ID: ${id}, Msg: ${errorMessage}. Check file path: ${config.src}`
-                        );
-
+                    onloaderror: () => {
+                        // Van tiep tuc load cac file khac neu 1 file loi
                         loadedCount++;
                         if (loadedCount === total) {
                             this.isLoaded = true;
@@ -102,110 +79,72 @@ class AudioManager {
     }
 
     /**
-     * Phát một âm thanh
-     * @param {string} id - ID âm thanh
-     * @returns {number | undefined} - Sound ID của Howler
+     * Phat am thanh theo ID.
+     * Su dung Lazy Load: neu chua co instance thi tao moi.
      */
     play(id: string): number | undefined {
-        // --- LAZY LOAD IMPLEMENTATION ---
-        
-        // 1. Nếu chưa có instance -> Tạo mới (Lazy Load)
         if (!this.sounds[id]) {
             const config = SOUND_MAP[id];
-            if (!config) {
-                 console.warn(`[AudioManager] Sound ID not found in config: ${id}`);
-                 return;
-            }
+            if (!config) return;
 
-            // console.log(`[AudioManager] Lazy loading sound: ${id}`);
             this.sounds[id] = new Howl({
                 src: [config.src],
                 loop: config.loop || false,
                 volume: config.volume || 1.0,
-                html5: true, 
-                onloaderror: (_sndId, error) => {
-                     console.error(`[Howler Error] Load failed for ${id}:`, error);
-                }
+                html5: true,
             });
         }
 
-        // 2. Play
         return this.sounds[id].play();
     }
 
-    /**
-     * Dừng một âm thanh
-     * @param {string} id - ID âm thanh
-     */
+    /** Dung 1 am thanh cu the */
     stop(id: string): void {
         if (!this.sounds[id]) return;
         this.sounds[id].stop();
     }
 
-    stopSound(id: string): void {
-        if (this.sounds[id]) {
-            this.sounds[id].stop();
-        }
-    }
-
+    /** Dung tat ca am thanh */
     stopAll(): void {
         Howler.stop();
     }
 
-    
-    // Dừng TẤT CẢ các Prompt và Feedback 
-    
+    /** Dung tat ca voice prompts */
     stopAllVoicePrompts(): void {
         const voiceKeys = Object.keys(SOUND_MAP).filter(
-            (key) =>
-                key.startsWith('prompt_') || key.startsWith('correct_answer_')
+            (key) => key.startsWith('voice') || key === 'hint'
         );
-
-        voiceKeys.forEach((key) => {
-            this.stopSound(key);
-        });
-
-        // Hoặc dùng: Howler.stop(); để dừng TẤT CẢ âm thanh (thận trọng khi dùng)
+        voiceKeys.forEach((key) => this.stop(key));
     }
 
-    // Kiểm tra nếu audio đã được unlock
+    /** Kiem tra audio da duoc unlock chua */
     get isUnlocked(): boolean {
         return Howler.ctx && Howler.ctx.state === 'running';
     }
 
+    /** Unlock audio (can thiet cho iOS) */
     unlockAudio(): void {
-        if (!Howler.usingWebAudio) return; 
-        
-        // Tạo một âm thanh dummy và play/stop ngay lập tức
-        const dummySound = new Howl({
-            src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA=='], // 1-frame silent WAV
-            volume: 0,
-            html5: true 
-        });
-        dummySound.once('play', () => {
-            dummySound.stop();
-            console.log('[Howler] Audio context unlocked manually.');
-        });
+        if (!Howler.usingWebAudio) return;
 
-        // Chỉ play nếu context đang ở trạng thái suspended/locked
+        const dummySound = new Howl({
+            src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA=='],
+            volume: 0,
+            html5: true
+        });
+        dummySound.once('play', () => dummySound.stop());
+
         if (Howler.ctx && Howler.ctx.state !== 'running') {
             dummySound.play();
         }
     }
 
+    /** Lay do dai am thanh (giay) */
     public getDuration(key: string): number {
         const sound = this.sounds[key];
-        
-        if (sound) {
-            // Howler trả về duration (giây). 
-            // Cần đảm bảo file đã load xong (state 'loaded'), nếu không nó trả về 0.
-            return sound.duration();
-        }
-        
-        console.warn(`[AudioManager] Không tìm thấy duration cho key: "${key}"`);
-        return 0; // Trả về 0 để an toàn
+        if (sound) return sound.duration();
+        return 0;
     }
 }
 
-// Xuất phiên bản duy nhất (Singleton)
+// Singleton
 export default new AudioManager();

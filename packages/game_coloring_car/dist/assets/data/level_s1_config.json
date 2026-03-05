@@ -4,18 +4,19 @@
     "outlineKey": "outline",
     "baseX_pct": 0.5,
     "baseY_pct": 0.5,
-  "parts": [
+    "parts": [
       { 
         "key": "1", 
         "offsetX": 0, 
         "offsetY": 0, 
         "scale": 0.95, 
         "hintPoints": [{"x": 0, "y": 0}],
-        "area_px": 295581,
-        "allowed_colors": ["#E05136", "#FFE007", "#499343", "#539BD7", "#FDAB12", "#E97090", "#000000"],
+        "area_px": 266762,
+        "allowed_colors": ["any"],
         "correct_color": null,
-        "min_region_coverage": 0.9,
-        "max_spill_ratio": 0
+        "min_region_coverage": 0.85,
+        "max_spill_ratio": 0,
+        "skill_ids": ["paint_shape"]
       },
       { 
         "key": "2", 
@@ -23,11 +24,12 @@
         "offsetY": 0, 
         "scale": 0.95, 
         "hintPoints": [{"x": -100, "y": -200}, {"x": 150, "y": -200}],
-        "area_px": 98609,
+        "area_px": 88995,
         "allowed_colors": ["any"],
         "correct_color": null,
-        "min_region_coverage": 0.9,
-        "max_spill_ratio": 0
+        "min_region_coverage": 0.85,
+        "max_spill_ratio": 0,
+        "skill_ids": ["paint_shape"]
       },
       { 
         "key": "3", 
@@ -35,12 +37,13 @@
         "offsetY": 0, 
         "scale": 0.95, 
         "hintPoints": [{"x": -350, "y": 200},{"x": 350, "y": 200}],
-        "area_px": 140424,
+        "area_px": 126733,
         "allowed_colors": ["any"],
         "correct_color": null,
-        "min_region_coverage": 0.9,
-        "max_spill_ratio": 0
+        "min_region_coverage": 0.85,
+        "max_spill_ratio": 0,
+        "skill_ids": ["paint_shape"]
       }
     ]
   }
-}             
+}   

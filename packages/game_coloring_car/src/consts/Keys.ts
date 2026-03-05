@@ -25,8 +25,6 @@ export enum TextureKeys {
     S1_BannerText = 'text_banner_s2',
     S1_Board = 'board_s2',
     
-    // Tô màu Cá Sấu (Mapped to Scene 1 logic)
-    S1_Casau_Template = 'ca_sau_template',
     S1_Frame = 'frame',
     
     S1_Name = 'name',

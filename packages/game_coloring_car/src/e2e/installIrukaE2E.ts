@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { game } from "@iruka-edu/mini-game-sdk";
 import { __testSpy } from "@iruka-edu/mini-game-sdk";
-
+import { getFixedStatsSnapshot, getFixedSubmitData } from '../utils/SDKHelper';
 
 declare global {
   interface Window {
@@ -10,22 +10,17 @@ declare global {
   }
 }
 
-
 export function isE2EEnabled(): boolean {
   const qs = new URLSearchParams(window.location.search);
   const v = (qs.get("e2e") || "").toLowerCase();
   return v === "1" || v === "true";
 }
 
-
-
-
 function clampInt(n: any, def = 1) {
   const x = Number(n);
   if (!Number.isFinite(x) || x <= 0) return def;
   return Math.floor(x);
 }
-
 
 /**
  * sdk: instance createGameSdk trong game của bạn
@@ -37,7 +32,6 @@ export function installIrukaE2E(sdk: {
 }) {
   if (!isE2EEnabled()) return;
 
-
   // enable spy + expose
   const spy = __testSpy;
   if (spy?.enable) {
@@ -45,9 +39,7 @@ export function installIrukaE2E(sdk: {
     window.__irukaSpy = spy;
   }
 
-
   const t0 = performance.now();
-
 
   window.__irukaTest = {
     setTotal(n: number) { game.setTotal(n); },
@@ -58,28 +50,45 @@ export function installIrukaE2E(sdk: {
       for (let i = 0; i < n; i++) game.recordWrong();
     },
 
-
     makeCorrect(n = 1) {
       n = clampInt(n, 1);
       for (let i = 0; i < n; i++) game.recordCorrect({ scoreDelta: 1 });
 
-
-      const snap = game.getStatsSnapshot();
+      const snap = getFixedStatsSnapshot();
       sdk.score(snap.finalScore);
     },
-
 
     useHint(n = 1) {
       n = clampInt(n, 1);
       for (let i = 0; i < n; i++) game.addHint();
     },
 
+    itemsReset() { game.resetItemsAll(); },
+
+    itemsCreate(meta: any, expected: any) {
+      return game.createItem(meta, expected);
+    },
+
+    itemsBegin(handle: string, timingExtra?: any) {
+      return game.beginAttempt(handle, timingExtra);
+    },
+
+    itemsHint(handle: string, n = 1) {
+      return game.useHint(handle, n);
+    },
+
+    itemsEnd(handle: string, response: any, opts?: any) {
+      return game.endAttempt(handle, response, opts);
+    },
+
+    itemsFinalize(handle: string) {
+      return game.finalizeItem(handle);
+    },
 
     finish() {
       game.finalizeAttempt();
-      const submit = game.prepareSubmitData();
+      const submit = getFixedSubmitData();
       const timeMs = Math.round(performance.now() - t0);
-
 
       sdk.complete({
         score: submit.finalScore,
@@ -87,7 +96,6 @@ export function installIrukaE2E(sdk: {
         extras: submit,
       });
     },
-
 
     snapshot() {
       return {

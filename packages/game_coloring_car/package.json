@@ -1,9 +1,11 @@
 {
   "dependencies": {
     "@iruka-edu/game-core": "^0.3.0",
-    "@iruka-edu/mini-game-sdk": "^0.7.2",
+    "@iruka-edu/iruka-audit": "^1.0.10",
+    "@iruka-edu/mini-game-sdk": "^0.7.9",
     "howler": "^2.2.4",
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "pngjs": "^7.0.0"
   },
   "devDependencies": {
     "@types/howler": "^2.2.12",
@@ -18,7 +20,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "setup": "pnpm dlx dotenv-cli -- pnpm add @iruka-edu/game-core @iruka-edu/mini-game-sdk",
+    "setup": "pnpm dlx dotenv-cli -- pnpm add @iruka-edu/game-core @iruka-edu/mini-game-sdk @iruka-edu/iruka-audit",
     "iruka-game:validate": "pnpm dlx dotenv-cli -e .env -- iruka-game validate",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

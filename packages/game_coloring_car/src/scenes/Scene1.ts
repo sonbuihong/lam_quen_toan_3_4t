@@ -1,130 +1,127 @@
 import Phaser from 'phaser';
 
-import { SceneKeys, TextureKeys, DataKeys, AudioKeys } from '../consts/Keys';
+import { SceneKeys, AudioKeys } from '../consts/Keys';
 import { GameConstants } from '../consts/GameConstants';
-import { GameUtils } from '../utils/GameUtils';
 import { IdleManager } from '../utils/IdleManager';
-
 import { changeBackground } from '../utils/BackgroundManager';
 import { PaintManager } from '../utils/PaintManager';
-
+import { LevelLoader } from '../utils/LevelLoader';
 import {
     playVoiceLocked,
     setGameSceneReference,
     resetVoiceState,
 } from '../utils/rotateOrientation';
+import { GameUtils } from '../utils/GameUtils';
 import AudioManager from '../audio/AudioManager';
 import { showGameButtons, sdk } from '../main';
 import { game } from "@iruka-edu/mini-game-sdk";
 
-import FPSCounter from '../utils/FPSCounter';
-
 export default class Scene1 extends Phaser.Scene {
-    // Đối tượng âm thanh nền (Background Music)
     private bgm!: Phaser.Sound.BaseSound;
 
-    // --- QUẢN LÝ LOGIC (MANAGERS) ---
-    private paintManager!: PaintManager; // Quản lý việc tô màu, cọ vẽ, canvas
-    private idleManager!: IdleManager; // Quản lý thời gian rảnh để hiện gợi ý
+    // --- MANAGERS ---
+    private paintManager!: PaintManager;
+    private idleManager!: IdleManager;
+    private levelLoader!: LevelLoader;
 
-    // --- QUẢN LÝ TRẠNG THÁI GAME (GAME STATE) ---
-    // Map lưu các bộ phận chưa tô xong (Key: ID, Value: Image Object) -> Dùng để random gợi ý
-    private unfinishedPartsMap: Map<string, Phaser.GameObjects.Image> =
-        new Map();
-    // Set lưu ID các bộ phận đã hoàn thành -> Dùng để check thắng (Win condition)
+    // --- GAME STATE ---
+    private unfinishedPartsMap: Map<string, Phaser.GameObjects.Image> = new Map();
     private finishedParts: Set<string> = new Set();
-    private totalParts: number = 0; // Tổng số bộ phận cần tô
-    private score: number = 0; // Điểm số hiện tại
-    private isIntroActive: boolean = false; // Cờ chặn tương tác khi đang chạy intro
-    private isWaitingForIntroStart: boolean = true; // Cờ chờ người dùng chạm lần đầu
+    private totalParts: number = 0;
+    private score: number = 0;
+    private hintCount: number = 0;
+    private hasCompleted: boolean = false;
 
-    // --- UI COMPONENTS ---
-    
-    private get handHint(): Phaser.GameObjects.Image | undefined {
-         const uiScene = this.scene.get(SceneKeys.UI) as any;
-         return uiScene?.handHint;
-    }
+    // Tracker variable for Paint-Shape BI format
+    public runSeq: number = 1;
 
-    // Tween đang chạy cho gợi ý (lưu lại để stop khi cần)
+    // --- HINT & INTRO STATE ---
+    private isIntroActive: boolean = false;
     private activeHintTween: Phaser.Tweens.Tween | null = null;
     private activeHintTarget: Phaser.GameObjects.Image | null = null;
+
+    // Tham chieu den handHint (lay tu UIScene)
+    private get handHint(): Phaser.GameObjects.Image | undefined {
+        const uiScene = this.scene.get(SceneKeys.UI) as any;
+        return uiScene?.handHint;
+    }
 
     constructor() {
         super(SceneKeys.Scene1);
     }
 
     /**
-     * Khởi tạo lại dữ liệu khi Scene bắt đầu (hoặc Restart)
-     * QUAN TRỌNG: Phải clear các Map/Set để tránh lỗi "Zombie Object" (tham chiếu đến object cũ đã bị destroy)
+     * Khoi tao lai du lieu khi Scene bat dau hoac Restart.
+     * Clear Map/Set de tranh loi tham chieu den object cu da bi destroy.
      */
     init(data?: { isRestart: boolean; fromEndGame?: boolean }) {
         this.unfinishedPartsMap.clear();
         this.finishedParts.clear();
         this.totalParts = 0;
         this.score = 0;
+        this.hintCount = 0;
+        this.hasCompleted = false;
 
-        if (data?.isRestart) {
-            this.isWaitingForIntroStart = false;
-            if (!data.fromEndGame) {
-                game.retryFromStart();
+        if (data && data.isRestart) {
+            this.runSeq += 1;
+            game.retryFromStart();
+            if (this.paintManager) {
+                this.paintManager.clearTrackersData();
             }
-        } else {
-            this.isWaitingForIntroStart = true;
         }
     }
 
     create() {
         showGameButtons();
 
-        this.setupSystem(); // Cài đặt hệ thống (Paint, Idle)
-        this.setupBackgroundAndAudio(); // Cài đặt hình nền và nhạc nền
-        this.createUI(); // Tạo giao diện (Bảng màu, Banner)
-        
-        // Chạy UI Scene
-        this.scene.launch(SceneKeys.UI, { 
+        this.setupSystem();
+        this.setupBackgroundAndAudio();
+        this.createUI();
+
+        // Chay UI Scene
+        this.scene.launch(SceneKeys.UI, {
             paintManager: this.paintManager,
-            sceneKey: SceneKeys.Scene1 
+            sceneKey: SceneKeys.Scene1
         });
 
-        this.createLevel(); // Tạo nhân vật và các vùng tô màu
-        
-        // SDK Integration
-        game.setTotal(1);
+        // Tao level va lay du lieu
+        const levelData = this.levelLoader.createLevel();
+        this.unfinishedPartsMap = levelData.unfinishedPartsMap;
+        this.totalParts = levelData.totalParts;
+
+        // SDK: Set tong so phan can to
+        game.setTotal(this.totalParts);
         (window as any).irukaGameState = {
             startTime: Date.now(),
             currentScore: 0,
         };
-        // sdk.score(this.score, 0); // REMOVED: Managed by PaintManager/EndGame
-        // sdk.progress({ levelIndex: 0, total: 1 }); // REMOVED: Managed by PaintManager/EndGame
+        sdk?.score(this.score, 0);
+        sdk?.progress({ levelIndex: 0, total: this.totalParts });
         game.startQuestionTimer();
 
-        this.setupInput(); // Cài đặt sự kiện chạm/vuốt
+        this.setupInput();
 
-        // this.playIntroSequence(); // Chạy hướng dẫn đầu game (Đã chuyển sang click-to-start)
+        // Register shutdown handler via Phaser event system
+        this.events.on(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
 
-        // Sự kiện khi quay lại tab game (Wake up)
+        // Su kien khi quay lai tab game
         this.events.on('wake', () => {
             this.idleManager.reset();
             if (this.input.keyboard) this.input.keyboard.enabled = true;
         });
 
-        // Nếu là restart (không cần chờ tap), chạy intro luôn
-        if (!this.isWaitingForIntroStart) {
-            const soundManager = this.sound as Phaser.Sound.WebAudioSoundManager;
-            if (soundManager.context && soundManager.context.state === 'suspended') {
-                soundManager.context.resume();
-            }
-            setTimeout(() => {
-                this.playIntroSequence();
-            }, 500);
+        // Tu dong chay intro khi scene duoc tao
+        const soundManager = this.sound as Phaser.Sound.WebAudioSoundManager;
+        if (soundManager.context && soundManager.context.state === 'suspended') {
+            soundManager.context.resume();
         }
+        setTimeout(() => {
+            this.playIntroSequence();
+        }, 300);
     }
 
-    update(time: number, delta: number) {
-        // Chỉ đếm thời gian Idle khi:
-        // 1. Không đang tô màu
-        // 2. Không đang chạy Intro
-        // 3. Chưa thắng game
+    update(_time: number, delta: number) {
+        // Chi dem thoi gian Idle khi KHONG dang to, KHONG dang intro, va CHUA thang
         if (
             !this.paintManager.isPainting() &&
             !this.isIntroActive &&
@@ -134,21 +131,27 @@ export default class Scene1 extends Phaser.Scene {
         }
     }
 
-    shutdown() {
+    private handleShutdown() {
         this.stopIntro();
-
-        if (this.paintManager) {
-             this.paintManager.finalizeAll();
-        }
-        this.paintManager = null as any; // Giải phóng bộ nhớ
+        this.paintManager.closeAllTrackers();
+        this.paintManager = null as any;
         this.scene.stop(SceneKeys.UI);
         if (this.bgm) {
             this.bgm.stop();
         }
+        this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
+    }
+
+    /** Expose cho rotateOrientation goi khi can restart intro */
+    public restartIntro() {
+        this.stopIntro();
+        this.time.delayedCall(GameConstants.SCENE1.TIMING.RESTART_INTRO, () =>
+            this.playIntroSequence()
+        );
     }
 
     // =================================================================
-    // PHẦN 1: CÀI ĐẶT HỆ THỐNG (SYSTEM SETUP)
+    // SYSTEM SETUP
     // =================================================================
 
     private setupSystem() {
@@ -156,23 +159,24 @@ export default class Scene1 extends Phaser.Scene {
         (window as any).gameScene = this;
         setGameSceneReference(this);
 
-        // Khởi tạo PaintManager
-        // Callback nhận về: id, renderTexture, và DANH SÁCH MÀU ĐÃ DÙNG (Set<number>)
+        // Khoi tao PaintManager voi callback khi to xong 1 phan
         this.paintManager = new PaintManager(this, (id, rt, usedColors) => {
             this.handlePartComplete(id, rt, usedColors);
         });
 
-        // Cài đặt Idle Manager: Khi rảnh quá lâu thì gọi showHint()
-        this.idleManager = new IdleManager(GameConstants.IDLE.THRESHOLD, () =>
-            this.showHint()
-        );
+        // Khoi tao IdleManager
+        this.idleManager = new IdleManager(GameConstants.IDLE.THRESHOLD, () => {
+            this.showHint();
+        });
+
+        // Khoi tao LevelLoader
+        this.levelLoader = new LevelLoader(this, this.paintManager);
     }
 
     private setupInput() {
-        // Chuyển tiếp các sự kiện input sang cho PaintManager xử lý vẽ
         this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
             this.paintManager.handlePointerMove(p);
-            if(this.paintManager.isPainting()) {
+            if (this.paintManager.isPainting()) {
                 this.idleManager.reset();
                 this.stopIntro();
                 this.stopActiveHint();
@@ -180,48 +184,28 @@ export default class Scene1 extends Phaser.Scene {
         });
         this.input.on('pointerup', () => this.paintManager.handlePointerUp());
 
-        // Khi chạm vào màn hình -> Reset bộ đếm Idle
         this.input.on('pointerdown', () => {
-            // Nếu là lần chạm đầu tiên -> Bắt đầu Intro (và unlock Audio)
-            if (this.isWaitingForIntroStart) {
-                this.isWaitingForIntroStart = false;
-                
-                // Unlock audio context nếu bị chặn
-                const soundManager = this.sound as Phaser.Sound.WebAudioSoundManager;
-                if (soundManager.context && soundManager.context.state === 'suspended') {
-                    soundManager.context.resume();
-                }
-                // AudioManager.unlockAudio(); // ✅ Unlock Howler Audio
-
-                this.playIntroSequence();
-                return;
-            }
-
             this.idleManager.reset();
             this.stopIntro();
             this.stopActiveHint();
         });
     }
 
-    /**
-     * Cài đặt hình nền và nhạc nền
-     */
     private setupBackgroundAndAudio() {
         changeBackground('assets/images/bg/background.jpg');
 
-        // Dừng nhạc nền cũ nếu có (tránh chồng nhạc)
         if (this.sound.get(AudioKeys.BgmNen)) {
             this.sound.stopByKey(AudioKeys.BgmNen);
         }
-        // Khởi tạo và phát nhạc nền mới
         this.bgm = this.sound.add(AudioKeys.BgmNen, {
             loop: true,
             volume: 0.25,
         });
         this.bgm.play();
     }
+
     // =================================================================
-    // PHẦN 2: TẠO GIAO DIỆN & LEVEL (UI & LEVEL CREATION)
+    // UI
     // =================================================================
 
     private createUI() {
@@ -229,98 +213,56 @@ export default class Scene1 extends Phaser.Scene {
         const cx = GameUtils.pctX(this, 0.5);
         const scl = [1, 0.72];
 
-        // Tính toán vị trí Board dựa trên Banner
-        // const bannerY = GameUtils.pctY(this, UI.BANNER_Y);
-        const bannerHeight = this.textures.get(TextureKeys.S1_Banner).getSourceImage().height * 0.7; // Scale 0.7
+        const bannerHeight = this.textures.get('banner_s2').getSourceImage().height * 0.7;
 
         const boardY = bannerHeight + GameUtils.pctY(this, UI.BOARD_OFFSET);
         const board = this.add
-            .image(cx, boardY, TextureKeys.S1_Board)
+            .image(cx, boardY, 'board_s2')
             .setOrigin(0.5, 0)
             .setScale(scl[0], scl[1])
             .setDepth(0);
 
-        board.displayWidth = GameUtils.getW(this) * 0.93;
-
-        const boardRightX = board.x + board.displayWidth / 2;
-        const boardCenterY = board.y + board.displayHeight / 2;
-        // const rightBoard = this.add
-        //     .image(boardRightX - 8, boardCenterY, TextureKeys.BoardRight)
-        //     .setOrigin(1, 0.5)
-        //     .setScale(scl[0], scl[1])
-        //     .setDepth(10);
+        board.displayWidth = this.scale.width * 0.93;
     }
 
-    // --- LOGIC TẠO LEVEL THEO STAGE ---
-    private createLevel() {
-        // Load cấu hình level từ JSON
-        const data = this.cache.json.get(DataKeys.LevelS1Config);
-        if (data) {
-            this.spawnCharacter(data.teacher);
-            // this.createDecorativeLetter(data.letter);
-            // this.createDecorativeObject(data.name);
+    // =================================================================
+    // SAVE / LOAD LOGIC
+    // =================================================================
+    
+    /**
+     * Duoc trigger tu hubOrigin onSetState
+     */
+    public applyHubState(payload: any) {
+        if (!payload || !payload.score) return;
+        
+        // Restore Score and Progress
+        this.score = payload.score;
+        if (payload.finishedParts) {
+            const arr = payload.finishedParts as string[];
+            arr.forEach(id => {
+                const rtHitArea = this.unfinishedPartsMap.get(id);
+                if (rtHitArea) {
+                    const rtLayer = rtHitArea.getData('layer');
+                    if (rtLayer && rtLayer instanceof Phaser.GameObjects.RenderTexture) {
+                        rtLayer.setData('isFinished', true);
+                        const singleColor = GameConstants.PAINT.DEFAULT_COLOR;
+                        rtLayer.setBlendMode(Phaser.BlendModes.NORMAL);
+                        rtLayer.fill(singleColor);
+                    }
+                    this.finishedParts.add(id);
+                    this.unfinishedPartsMap.delete(id);
+                }
+            });
         }
     }
 
-    private spawnCharacter(config: any) {
-        const cx = GameUtils.pctX(this, config.baseX_pct);
-        const cy = GameUtils.pctY(this, config.baseY_pct);
-
-        config.parts.forEach((part: any, index: number) => {
-            const id = `${part.key}_${index}`;
-            const layerX = cx + part.offsetX;
-            const layerY = cy + part.offsetY;
-
-            // Tạo vùng tô màu thông qua PaintManager
-            const hitArea = this.paintManager.createPaintableLayer(
-                layerX,
-                layerY,
-                part.key,
-                part.scale,
-                id
-            );
-
-            // --- BEST PRACTICE: LƯU DỮ LIỆU TĨNH & TÍNH TOÁN TỰ ĐỘNG ---
-            const centerOffset = GameUtils.calculateCenteredOffset(this, part.key);
-            let hX = centerOffset.x;
-            let hY = centerOffset.y;
-
-            // Lưu các thông số cấu hình vào Data Manager của Game Object.
-            hitArea.setData('hintX', hX);
-            hitArea.setData('hintY', hY);
-            hitArea.setData('originScale', part.scale); // Scale gốc (không đổi)
-            
-            // --- CẬP NHẬT: LƯU HINT POINTS (NẾU CÓ) ---
-            if (part.hintPoints && Array.isArray(part.hintPoints)) {
-                hitArea.setData('hintPoints', part.hintPoints);
-            }
-
-            this.unfinishedPartsMap.set(id, hitArea);
-            this.totalParts++;
-
-            // --- SDK DATA SETUP ---
-            hitArea.setData("area_px", part.area_px ?? 0);
-            hitArea.setData("allowed_colors", part.allowed_colors ?? ["any"]);
-            hitArea.setData("correct_color", part.correct_color ?? null);
-            hitArea.setData("min_region_coverage", GameConstants.PAINT.WIN_PERCENT);
-            hitArea.setData("max_spill_ratio", 0);
-        });
-
-        // Vẽ viền (Outline) lên trên cùng
-        this.add
-            .image(cx, cy, config.outlineKey)
-            .setScale(config.baseScale)
-            .setDepth(900)
-            .setInteractive({ pixelPerfect: true });
-    }
-
     // =================================================================
-    // PHẦN 3: LOGIC GAMEPLAY (GAMEPLAY LOGIC)
+    // GAMEPLAY LOGIC
     // =================================================================
 
     /**
-     * Xử lý khi một bộ phận được tô xong
-     * @param usedColors Set chứa danh sách các màu đã tô lên bộ phận này
+     * Xu ly khi mot bo phan duoc to xong.
+     * Cap nhat diem, SDK tracking, va kiem tra dieu kien thang.
      */
     private handlePartComplete(
         id: string,
@@ -328,33 +270,44 @@ export default class Scene1 extends Phaser.Scene {
         usedColors: Set<number>
     ) {
         this.finishedParts.add(id);
-
-        game.recordCorrect({ scoreDelta: 1 });
         this.score += 1;
-        (window as any).irukaGameState.currentScore = this.score;
-        // sdk.score(this.score, 1); // REMOVED
-        // sdk.progress({...}); // REMOVED
+
+        // SDK: Ghi nhan hoan thanh 1 phan
         game.finishQuestionTimer();
+        game.recordCorrect({ scoreDelta: 1 });
 
-
-        // --- LOGIC AUTO-FILL THÔNG MINH ---
-        // Nếu bé chỉ dùng ĐÚNG 1 MÀU -> Game tự động fill màu đó cho đẹp (khen thưởng)
-        if (usedColors.size === 1) {
-            const singleColor = usedColors.values().next().value || 0;
-
-            rt.setBlendMode(Phaser.BlendModes.NORMAL);
-            rt.fill(singleColor);
-        } else {
-            // Nếu bé dùng >= 2 màu (tô sặc sỡ) -> Giữ nguyên nét vẽ nghệ thuật của bé
-            console.log('Multi-color artwork preserved!');
+        if ((window as any).irukaGameState) {
+            (window as any).irukaGameState.currentScore = this.score;
         }
 
-        // Xóa khỏi danh sách chưa tô -> Để gợi ý không chỉ vào cái này nữa
+        // Game Hub: Cap nhat diem va tien do
+        sdk?.score(this.score, 1);
+        sdk?.progress({
+            levelIndex: this.finishedParts.size,
+            score: this.score,
+            total: this.totalParts
+        });
+
+        // Game Hub: Luu state
+        sdk?.requestSave({
+            score: this.score,
+            levelIndex: this.finishedParts.size,
+            finishedParts: Array.from(this.finishedParts)
+        });
+
+        // Logic auto-fill: Neu chi dung 1 mau -> fill mau do cho dep
+        if (usedColors.size === 1) {
+            const singleColor = usedColors.values().next().value || 0;
+            rt.setBlendMode(Phaser.BlendModes.NORMAL);
+            rt.fill(singleColor);
+        }
+
+        // Xoa khoi danh sach chua to
         this.unfinishedPartsMap.delete(id);
 
         AudioManager.play('sfx-ting');
 
-        // Hiệu ứng nhấp nháy báo hiệu hoàn thành
+        // Hieu ung nhap nhay
         this.tweens.add({
             targets: rt,
             alpha: 0.8,
@@ -363,62 +316,47 @@ export default class Scene1 extends Phaser.Scene {
             repeat: 2,
         });
 
-        // Kiểm tra điều kiện thắng
+        // Kiem tra dieu kien thang
         if (this.finishedParts.size >= this.totalParts) {
-            console.log('WIN!');
-
             AudioManager.play('sfx-correct_s2');
-            
-            // Xóa UI (Nút màu & Banner)
+
+            // An UI
             const uiScene = this.scene.get(SceneKeys.UI) as any;
             if (uiScene) {
                 if (uiScene.hidePalette) uiScene.hidePalette();
                 if (uiScene.hideBanners) uiScene.hideBanners();
             }
 
+            const reason = this.hintCount > GameConstants.IDLE.MAX_HINT_COUNT
+                ? GameConstants.ERROR_CODES.HINT_RELIANCE
+                : undefined;
+
             this.time.delayedCall(GameConstants.SCENE1.TIMING.WIN_DELAY, () => {
-                this.scene.start(SceneKeys.EndGame);
+                // Dong tat ca PaintTracker con do truoc khi chuyen scene
+                // Giup be co the tiep tuc to de luu record tracker trong doan delay nay
+                this.paintManager.closeAllTrackers();
+                this.scene.start(SceneKeys.EndGame, { hasCompleted: true, reason });
             });
-            // --- GAME HUB COMPLETE ---
-             // Finalize all paint trackers first
-             if (this.paintManager) {
-                this.paintManager.finalizeAll();
-            }
-
-            sdk.requestSave({
-                score: this.score,
-                levelIndex: 0,
-            });
-            sdk.progress({
-                levelIndex: 0,
-                total: 1,
-                score: this.score,
-            });
-
-            game.finalizeAttempt();
+        } else {
+            // Bat dau dem thoi gian cho phan tiep theo
+            game.startQuestionTimer();
         }
     }
 
     // =================================================================
-    // PHẦN 4: HƯỚNG DẪN & GỢI Ý (TUTORIAL & HINT)
+    // INTRO TUTORIAL & IDLE HINT
     // =================================================================
 
-    public restartIntro() {
-        this.stopIntro();
-        this.time.delayedCall(GameConstants.SCENE1.TIMING.RESTART_INTRO, () =>
-            this.playIntroSequence()
-        );
-    }
-
+    /** Khoi chay sequence huong dan dau game */
     private playIntroSequence() {
         this.isIntroActive = true;
         playVoiceLocked(null, 'voice_intro_s2');
-        // Đợi 1 chút rồi chạy animation tay hướng dẫn
         this.time.delayedCall(GameConstants.SCENE1.TIMING.INTRO_DELAY, () => {
             if (this.isIntroActive) this.runHandTutorial();
         });
     }
 
+    /** Dung intro va bat dau dem thoi gian idle */
     private stopIntro() {
         this.isIntroActive = false;
         this.idleManager.start();
@@ -428,76 +366,164 @@ export default class Scene1 extends Phaser.Scene {
         }
     }
 
-    /**
-     * Tutorial đầu game: Tay cầm màu đỏ tô mẫu
-     */
+    /** Dung hint dang chay (khi nguoi choi cham vao man hinh) */
+    private stopActiveHint() {
+        if (this.activeHintTween) {
+            this.activeHintTween.stop();
+            this.activeHintTween = null;
+        }
+
+        if (this.activeHintTarget) {
+            this.tweens.killTweensOf(this.activeHintTarget);
+            this.activeHintTarget.setAlpha(0.01);
+            this.activeHintTarget.setScale(this.activeHintTarget.getData('originScale'));
+            this.activeHintTarget = null;
+        }
+
+        if (this.handHint) {
+            this.tweens.killTweensOf(this.handHint);
+            this.handHint.setAlpha(0).setPosition(-200, -200);
+        }
+    }
+
+    /** Hien goi y: Chon ngau nhien 1 vung chua to va chi tay vao */
+    private showHint() {
+        this.hintCount += 1;
+
+        const items = Array.from(this.unfinishedPartsMap.values());
+        if (items.length === 0) return;
+
+        // Random 1 bo phan chua to
+        const target = items[Math.floor(Math.random() * items.length)];
+
+        // Ghi nhan hint vao tracker cua part duoc hint (item-level)
+        // SDK se tang hint_used, tu do prepareSubmitData() tong hop dung hintCount
+        const partId = target.getData('id') as string;
+        const partKey = target.getData('partKey') as string;
+        this.paintManager.addHintToTracker(partId, partKey);
+        game.addHint();
+
+        AudioManager.play('hint');
+
+        const IDLE_CFG = GameConstants.IDLE;
+
+        // Visual 1: Nhap nhay bo phan do de gay chu y
+        this.activeHintTarget = target;
+        this.activeHintTween = this.tweens.add({
+            targets: target,
+            alpha: { from: 0.01, to: 0.8 },
+            scale: { from: target.getData('originScale'), to: target.getData('originScale') * 1.005 },
+            duration: IDLE_CFG.FADE_IN,
+            yoyo: true,
+            repeat: 2,
+            onComplete: () => {
+                this.activeHintTween = null;
+                this.activeHintTarget = null;
+                this.idleManager.reset();
+            }
+        });
+
+        // Visual 2: Ban tay chi vao vung can to
+        const hX = target.getData('hintX') || 0;
+        const hY = target.getData('hintY') || 0;
+        const originScale = target.getData('originScale') || 1;
+
+        let destX = target.x + (hX * originScale);
+        let destY = target.y + (hY * originScale);
+
+        if (!this.handHint) return;
+
+        this.handHint.setOrigin(0, 0);
+
+        const hintPoints = target?.getData('hintPoints');
+
+        let startHintX = destX;
+        let startHintY = destY;
+
+        const tweensChain: any[] = [];
+
+        if (hintPoints && hintPoints.length > 0) {
+            const baseX = target?.x || 0;
+            const baseY = target?.y || 0;
+
+            // Tinh diem dau tien
+            const firstP = hintPoints[0];
+            startHintX = baseX + (firstP.x * originScale);
+            startHintY = baseY + (firstP.y * originScale);
+
+            // Hien ra tai diem dau tien
+            tweensChain.push({ alpha: 1, x: startHintX, y: startHintY, duration: IDLE_CFG.FADE_IN });
+            tweensChain.push({ scale: 0.5, duration: IDLE_CFG.SCALE, yoyo: true, repeat: 3 });
+
+            // Di chuyen va Tap o cac diem tiep theo
+            for (let i = 1; i < hintPoints.length; i++) {
+                const p = hintPoints[i];
+                const dX = baseX + (p.x * originScale);
+                const dY = baseY + (p.y * originScale);
+                tweensChain.push({ x: dX, y: dY, duration: IDLE_CFG.SCALE * 2 });
+                tweensChain.push({ scale: 0.5, duration: IDLE_CFG.SCALE, yoyo: true, repeat: 3 });
+            }
+
+            tweensChain.push({ alpha: 0, duration: IDLE_CFG.FADE_OUT });
+        } else {
+            // Fallback: Chi vao trong tam
+            tweensChain.push({ alpha: 1, x: destX, y: destY, duration: IDLE_CFG.FADE_IN });
+            tweensChain.push({ scale: 0.5, duration: IDLE_CFG.SCALE, yoyo: true, repeat: 3 });
+            tweensChain.push({ alpha: 0, duration: IDLE_CFG.FADE_OUT });
+        }
+
+        this.handHint.setPosition(startHintX, startHintY)
+            .setAlpha(0).setScale(0.7);
+
+        this.tweens.chain({
+            targets: this.handHint,
+            tweens: tweensChain
+        });
+    }
+
+    /** Tutorial dau game: Tay di chuyen tu nut mau den vung to */
     private runHandTutorial() {
         if (!this.isIntroActive) return;
 
-        // 1. Tìm bộ phận mục tiêu (Lấy bộ phận đầu tiên chưa tô)
+        // Tim bo phan muc tieu (bo phan dau tien chua to)
         const items = Array.from(this.unfinishedPartsMap.values());
         let target: Phaser.GameObjects.Image | undefined;
         let destX = 0;
         let destY = 0;
 
         if (items.length > 0) {
-            target = items[0]; // Lấy cái đầu tiên
+            target = items[0];
             const hX = target.getData('hintX') || 0;
             const hY = target.getData('hintY') || 0;
-            const originScale = target.getData('originScale') || 1; 
-
-            // Tính tọa độ đích chính xác
+            const originScale = target.getData('originScale') || 1;
             destX = target.x + (hX * originScale);
             destY = target.y + (hY * originScale);
         } else {
-            // Fallback nếu không có part nào (hiếm gặp)
             const UI = GameConstants.SCENE1.UI;
             destX = GameUtils.pctX(this, UI.HAND_INTRO_END_X);
             destY = GameUtils.pctY(this, UI.HAND_INTRO_END_Y);
         }
 
-        // 2. Visual: Nhấp nháy bộ phận đó (nếu có) để gây chú ý
-        // if (target) {
-        //     this.activeHintTarget = target;
-        //     this.tweens.add({
-        //         targets: target, 
-        //         alpha: { from: 0.01, to: 0.8 },
-        //         scale: { from: target.getData('originScale'), to: target.getData('originScale') * 1.005 },
-        //         duration: GameConstants.IDLE.FADE_IN, 
-        //         yoyo: true, 
-        //         repeat: 2,
-        //         onComplete: () => {
-        //             if (this.activeHintTarget === target) {
-        //                  this.activeHintTarget = null;
-        //             }
-        //         }
-        //     });
-        // }
-
         const UI = GameConstants.SCENE1.UI;
         const INTRO = GameConstants.SCENE1.INTRO_HAND;
 
-        // Tính toán tọa độ nút màu đầu tiên (Horizontal Layout)
-        // Copy logic from UIScene because we need the exact position of the first button
+        // Tinh toa do nut mau dau tien (Horizontal Layout)
         const spacingX = GameUtils.pctX(this, UI.PALETTE_SPACING_X);
         const paletteData = GameConstants.PALETTE_DATA;
         const totalItems = paletteData.length + 1;
         const totalWidth = (totalItems - 1) * spacingX;
         const startX = (GameUtils.getW(this) - totalWidth) / 2;
-        
-        const paletteY = GameUtils.pctY(this, UI.PALETTE_Y);
 
-        const dragY = destY + 30; // Kéo tay xuống thấp hơn điểm đích một chút để không che mất
+        const paletteY = GameUtils.pctY(this, UI.PALETTE_Y);
+        const dragY = destY + 30;
 
         if (!this.handHint) return;
 
         this.handHint.setOrigin(0, 0);
-        // Start from the first color button position
         this.handHint.setPosition(startX, paletteY).setAlpha(0).setScale(0.7);
 
-        // --- CẬP NHẬT LOGIC HINT POINTS ---
-        const hintPoints = target?.getData('hintPoints'); // Lấy danh sách điểm gợi ý
-        
+        const hintPoints = target?.getData('hintPoints');
+
         const tweensChain: any[] = [
             {
                 alpha: 1,
@@ -510,200 +536,55 @@ export default class Scene1 extends Phaser.Scene {
         ];
 
         if (hintPoints && hintPoints.length > 0) {
-            // Nếu có danh sách điểm, di chuyển lần lượt qua các điểm
+            // Di chuyen qua tung diem goi y tren vung to
             const originScale = target?.getData('originScale') || 1;
             const baseX = target?.x || 0;
             const baseY = target?.y || 0;
 
-            // Di chuyển đến điểm đầu tiên
             const firstP = hintPoints[0];
             const firstDestX = baseX + (firstP.x * originScale);
             const firstDestY = baseY + (firstP.y * originScale);
 
             tweensChain.push({ x: firstDestX, y: firstDestY, duration: INTRO.DRAG, delay: 100 });
-
-            // Rub tại điểm đầu tiên
             tweensChain.push({
-                x: '-=30',
-                y: '-=10',
-                duration: INTRO.RUB,
-                yoyo: true,
-                repeat: 3,
+                x: '-=30', y: '-=10',
+                duration: INTRO.RUB, yoyo: true, repeat: 3,
             });
 
-            // Di chuyển qua các điểm còn lại
             for (let i = 1; i < hintPoints.length; i++) {
                 const p = hintPoints[i];
-                const destX = baseX + (p.x * originScale);
-                const destY = baseY + (p.y * originScale);
-                tweensChain.push({ x: destX, y: destY, duration: INTRO.DRAG });
-            
-                // Rub tại các điểm tiếp theo
-             tweensChain.push({
-                x: '-=30',
-                y: '-=10',
-                duration: INTRO.RUB,
-                yoyo: true,
-                repeat: 3,
-            });
+                const pX = baseX + (p.x * originScale);
+                const pY = baseY + (p.y * originScale);
+                tweensChain.push({ x: pX, y: pY, duration: INTRO.DRAG });
+                tweensChain.push({
+                    x: '-=30', y: '-=10',
+                    duration: INTRO.RUB, yoyo: true, repeat: 3,
+                });
             }
-
         } else {
-             // Logic cũ: Drag đến center rồi Rub
-             tweensChain.push({ x: destX, y: dragY, duration: INTRO.DRAG, delay: 100 });
-             tweensChain.push({
-                x: '-=30',
-                y: '-=10',
-                duration: INTRO.RUB,
-                yoyo: true,
-                repeat: 3,
+            // Fallback: Drag den center roi Rub
+            tweensChain.push({ x: destX, y: dragY, duration: INTRO.DRAG, delay: 100 });
+            tweensChain.push({
+                x: '-=30', y: '-=10',
+                duration: INTRO.RUB, yoyo: true, repeat: 3,
             });
         }
 
+        // Bien mat va lap lai neu intro chua ket thuc
         tweensChain.push({
             alpha: 0,
             duration: 500,
             onComplete: () => {
                 this.handHint?.setPosition(-200, -200);
-                // Lặp lại nếu Intro chưa kết thúc
-                if (this.isIntroActive)
-                    this.time.delayedCall(1000, () =>
-                        this.runHandTutorial()
-                            );
-                    },
+                if (this.isIntroActive) {
+                    this.time.delayedCall(1000, () => this.runHandTutorial());
+                }
+            },
         });
 
-        // Chuỗi Animation: Hiện -> Ấn chọn màu -> Kéo ra -> Di đi di lại (tô) tại đúng vị trí -> Biến mất
         this.tweens.chain({
             targets: this.handHint,
             tweens: tweensChain,
         });
-    }
-
-    /**
-     * Gợi ý khi rảnh (Idle Hint): Chọn ngẫu nhiên 1 phần chưa tô để chỉ vào
-     */
-    private showHint() {
-        game.addHint();
-        const items = Array.from(this.unfinishedPartsMap.values());
-        if (items.length === 0) return;
-        
-        // Random 1 bộ phận
-        const target = items[Math.floor(Math.random() * items.length)];
-
-        AudioManager.play('hint');
-        
-        const IDLE_CFG = GameConstants.IDLE;
-
-        // Visual 1: Nhấp nháy bộ phận đó
-        this.activeHintTarget = target;
-        this.activeHintTween = this.tweens.add({
-            targets: target, 
-            alpha: { from: 0.01, to: 0.8 },
-            scale: { from: target.getData('originScale'), to: target.getData('originScale') * 1.005 },
-            duration: IDLE_CFG.FADE_IN, 
-            yoyo: true, 
-            repeat: 2,
-            onComplete: () => { 
-                this.activeHintTween = null; 
-                this.activeHintTarget = null;
-                this.idleManager.reset();
-            }
-        });
-
-        // Visual 2: Bàn tay chỉ vào
-        // --- FIX BUG LỆCH VỊ TRÍ (BEST PRACTICE) ---
-        // Không dùng target.scaleX vì nó biến thiên khi tween.
-        // Dùng originScale (lấy từ Data) để đảm bảo tính toán vị trí luôn chính xác tuyệt đối.
-        const hX = target.getData('hintX') || 0;
-        const hY = target.getData('hintY') || 0;
-        const originScale = target.getData('originScale') || 1; 
-
-        // Tính tọa độ đích dựa trên scale gốc
-        let destX = target.x + (hX * originScale);
-        let destY = target.y + (hY * originScale);
-
-        if (!this.handHint) return;
-
-        // --- CẬP NHẬT: SET ORIGIN (0,0) ĐỂ NGÓN TAY (GÓC TRÁI TRÊN) CHỈ ĐÚNG VÀO ĐIỂM ---
-        this.handHint.setOrigin(0, 0);
-
-        // Set vị trí ban đầu (nếu có hint points thì set ở điểm đầu, ko thì destX)
-        // Tuy nhiên logic hint là fade in tại chỗ, nên cần xác định chỗ nào
-        
-        const hintPoints = target?.getData('hintPoints'); // Lấy danh sách điểm gợi ý
-        
-        // Mặc định dùng destX, destY cũ làm điểm xuất phát
-        let startHintX = destX;
-        let startHintY = destY;
-
-        const tweensChain: any[] = [];
-        
-        if (hintPoints && hintPoints.length > 0) {
-            const baseX = target?.x || 0;
-            const baseY = target?.y || 0;
-            
-             // Tính điểm đầu tiên
-            const firstP = hintPoints[0];
-            startHintX = baseX + (firstP.x * originScale);
-            startHintY = baseY + (firstP.y * originScale);
-            
-            // 1. Hiện ra tại điểm đầu tiên
-            tweensChain.push({ alpha: 1, x: startHintX, y: startHintY, duration: IDLE_CFG.FADE_IN });
-            // 2. Tap tại điểm đầu tiên
-            tweensChain.push({ scale: 0.5, duration: IDLE_CFG.SCALE, yoyo: true, repeat: 3 });
-
-            // 3. Di chuyển và Tap ở các điểm tiếp theo
-            for (let i = 1; i < hintPoints.length; i++) {
-                const p = hintPoints[i];
-                const dX = baseX + (p.x * originScale);
-                const dY = baseY + (p.y * originScale);
-                
-                // Di chuyển đến
-                tweensChain.push({ x: dX, y: dY, duration: IDLE_CFG.SCALE * 2 });
-                // Tap
-                tweensChain.push({ scale: 0.5, duration: IDLE_CFG.SCALE, yoyo: true, repeat: 3 });
-            }
-
-            // 4. Biến mất
-             tweensChain.push({ alpha: 0, duration: IDLE_CFG.FADE_OUT });
-
-        } else {
-             // Logic cũ
-             startHintX = destX;
-             startHintY = destY;
-
-              tweensChain.push({ alpha: 1, x: destX, y: destY, duration: IDLE_CFG.FADE_IN });
-              tweensChain.push({ scale: 0.5, duration: IDLE_CFG.SCALE, yoyo: true, repeat: 3 });
-              tweensChain.push({ alpha: 0, duration: IDLE_CFG.FADE_OUT });
-        }
-
-        // Không dùng OFFSET nữa vì muốn chỉ chính xác
-        this.handHint.setPosition(startHintX, startHintY)
-            .setAlpha(0).setScale(0.7);
-        
-        this.tweens.chain({
-            targets: this.handHint,
-            tweens: tweensChain
-        });
-    }
-
-    private stopActiveHint() {
-        if (this.activeHintTween) {
-            this.activeHintTween.stop();
-            this.activeHintTween = null;
-        }
-
-        if (this.activeHintTarget) {
-            this.tweens.killTweensOf(this.activeHintTarget);
-            this.activeHintTarget.setAlpha(0.01); // Reset about PaintManager default alpha
-            this.activeHintTarget.setScale(this.activeHintTarget.getData('originScale'));
-            this.activeHintTarget = null;
-        }
-
-        if (this.handHint) {
-            this.tweens.killTweensOf(this.handHint);
-            this.handHint.setAlpha(0).setPosition(-200, -200);
-        }
     }
 }

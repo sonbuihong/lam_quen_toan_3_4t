@@ -2,188 +2,167 @@ import Phaser from 'phaser';
 import Scene1 from './scenes/Scene1';
 import PreloadScene from './scenes/PreloadScene';
 import UIScene from './scenes/UIScene';
-
-import EndGameScene from './scenes/EndgameScene';
+import EndGameScene from './scenes/EndGameScene';
 import { initRotateOrientation } from './utils/rotateOrientation';
 import AudioManager from './audio/AudioManager';
+
+// Iruka SDK
 import { game } from "@iruka-edu/mini-game-sdk";
+import { installIrukaE2E } from './e2e/installIrukaE2E';
+import { getFixedSubmitData } from './utils/SDKHelper';
+import { GameConstants } from './consts/GameConstants';
 
-    declare global {
-        interface Window {
-            gameScene: any;
-            irukaHost: any; // Khai báo thêm để TS không báo lỗi
-            irukaGameState: any;
-        }
+declare global {
+    interface Window {
+        gameScene: any;
+        irukaGameState?: {
+            startTime: number;
+            currentScore: number;
+        };
     }
+}
 
-    // --- 0. HELPER FUNCTIONS ---
-    function applyResize(width: number, height: number) {
-        const gameDiv = document.getElementById('game-container');
-        if (gameDiv) {
-            gameDiv.style.width = `${width}px`;
-            gameDiv.style.height = `${height}px`;
-        }
-        if (gamePhaser) {
-             gamePhaser.scale.resize(width, height);
-        }
+// --- CAU HINH PHASER ---
+const config: Phaser.Types.Core.GameConfig = {
+    type: Phaser.AUTO,
+    width: 1920,
+    height: 1080,
+    parent: 'game-container',
+    scene: [PreloadScene, Scene1, EndGameScene, UIScene],
+    backgroundColor: '#ffffff',
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+    },
+    physics: {
+        default: 'arcade',
+        arcade: { debug: false }
+    },
+    render: {
+        transparent: true,
+    },
+};
+
+export const gamePhaser = new Phaser.Game(config);
+
+// --- IRUKA SDK INTEGRATION ---
+
+function applyResize(width: number, height: number) {
+    const gameDiv = document.getElementById('game-container');
+    if (gameDiv) {
+        gameDiv.style.width = `${width}px`;
+        gameDiv.style.height = `${height}px`;
     }
+    gamePhaser.scale.resize(width, height);
+}
 
-    function broadcastSetState(payload: any) {
-        // chuyển xuống scene đang chạy
-        if (!gamePhaser) return;
-        const scene = gamePhaser.scene.getScenes(true)[0] as any;
-        scene?.applyHubState?.(payload);
+function broadcastSetState(payload: any) {
+    const scene = gamePhaser.scene.getScenes(true)[0] as any;
+    // Bắn state vào scene đang chạy. Nếu scene đó có applyHubState thì gọi.
+    if (scene && typeof scene.applyHubState === 'function') {
+        scene.applyHubState(payload);
     }
+}
 
-    function getHubOrigin(): string {
-      const qs = new URLSearchParams(window.location.search);
-      const o = qs.get("hubOrigin");
-      if (o) return o;
-      try {
-        const ref = document.referrer;
-        if (ref) return new URL(ref).origin;
-      } catch {}
-      return "*"; 
-    }
+function getHubOrigin(): string {
+    const qs = new URLSearchParams(window.location.search);
+    const o = qs.get("hubOrigin");
+    if (o) return o;
 
-    // --- 1. BIẾN GLOBAL CHO GAME PHASER ---
-    // Khai báo trước để SDK callback có thể tham chiếu (dù lúc đầu là undefined)
-    let gamePhaser: Phaser.Game;
+    // Khi khong co hubOrigin trong query string, fallback "*"
+    // Truong hop production: Game Hub se luon truyen hubOrigin qua URL
+    // Truong hop dev/test: Cho phep chay doc lap voi wildcard
+    console.warn("[GameSDK] hubOrigin khong co trong URL, fallback '*'. Game se khong gui postMessage chinh xac khi chay trong GameHub.");
+    return "*";
+}
 
-    // --- 2. KHỞI TẠO SDK TRƯỚC (Để hook E2E có ngay lập tức) ---
-    import { installIrukaE2E } from './e2e/installIrukaE2E';
+export let sdk = game.createGameSdk({
+    hubOrigin: getHubOrigin(),
 
-    export const sdk = game.createGameSdk({
-      hubOrigin: getHubOrigin(),
-
-      onInit(ctx: any) {
-        // Có thể gamePhaser chưa ready ở đây nếu init quá nhanh, nhưng thường thì ok
-        // Reset stats session nếu cần
-        
+    onInit(_ctx) {
+        // Báo READY sau INIT với các capabilities:
         sdk.ready({
-          capabilities: ["resize", "score", "complete", "save_load", "set_state", "stats", "hint"],
+            capabilities: ["resize", "score", "complete", "save_load", "set_state", "stats", "hint", "paint"],
         });
-      },
+    },
 
-      onStart() {
-        if(gamePhaser) {
-            gamePhaser.scene.resume("Scene1");
-            gamePhaser.scene.resume("EndGameScene");
-        }
-      },
+    onStart() {
+        gamePhaser.scene.resume("Scene1");
+        gamePhaser.scene.resume("EndGameScene");
+    },
 
-      onPause() {
-        if(gamePhaser) gamePhaser.scene.pause("Scene1");
-      },
+    onPause() {
+        gamePhaser.scene.pause("Scene1");
+    },
 
-      onResume() {
-        if(gamePhaser) gamePhaser.scene.resume("Scene1");
-      },
+    onResume() {
+        gamePhaser.scene.resume("Scene1");
+    },
 
-      onResize(size: any) {
+    onResize(size) {
         applyResize(size.width, size.height);
-      },
+    },
 
-      onSetState(state: any) {
+    onSetState(state) {
         broadcastSetState(state);
-      },
+    },
 
-      onQuit() {
+    onQuit() {
+        // QUIT: chot attempt la quit + gui complete
         game.finalizeAttempt("quit");
         sdk.complete({
-          timeMs: Date.now() - ((window as any).irukaGameState?.startTime ?? Date.now()),
-          extras: { reason: "hub_quit", stats: game.prepareSubmitData() },
+            timeMs: Date.now() - ((window as any).irukaGameState?.startTime ?? Date.now()),
+            extras: { reason: GameConstants.ERROR_CODES.USER_ABANDONED, stats: getFixedSubmitData() },
         });
-      },
-    });
+    },
+});
 
-    // Cài đặt Hook ngay lập tức!
-    installIrukaE2E(sdk);
+installIrukaE2E(sdk);
 
-    // --- 3. CẤU HÌNH & KHỞI TẠO GAME PHASER ---
-    const config: Phaser.Types.Core.GameConfig = {
-        type: Phaser.AUTO,
-        width: 1920,
-        height: 1080,
-        parent: 'game-container',
-        scene: [PreloadScene, Scene1, EndGameScene, UIScene],
-        backgroundColor: '#ffffff',
-        scale: {
-            mode: Phaser.Scale.FIT,      
-            autoCenter: Phaser.Scale.CENTER_BOTH,
-        },
-        physics: {
-            default: 'arcade',
-            arcade: { debug: false }
-        },
-        render: {
-            transparent: true,
-        },
-    };
 
-    // Khởi tạo Game sau khi SDK đã sẵn sàng hook
-    gamePhaser = new Phaser.Game(config);
+// --- UI BUTTON LOGIC ---
 
-    // --- 4. XỬ LÝ LOGIC UI & HELPER KHÁC ---
-    function updateUIButtonScale() {
-        const resetBtn = document.getElementById('btn-reset') as HTMLImageElement;
-        if (!resetBtn) return; 
+function updateUIButtonScale() {
+    const resetBtn = document.getElementById('btn-reset') as HTMLImageElement;
+    if (!resetBtn) return;
 
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        const newSize = h / 9;
+    const h = window.innerHeight;
+    const newSize = h / 9;
+    resetBtn.style.width = `${newSize}px`;
+    resetBtn.style.height = `${newSize}px`;
+}
 
-        resetBtn.style.width = `${newSize}px`;
-        resetBtn.style.height = `${newSize}px`;
-    }
+export function showGameButtons() {
+    const reset = document.getElementById('btn-reset');
+    if (reset) reset.style.display = 'block';
+}
 
-    export function showGameButtons() {
-        const reset = document.getElementById('btn-reset');
-        if (reset) reset.style.display = 'block';
-    }
+export function hideGameButtons() {
+    const reset = document.getElementById('btn-reset');
+    if (reset) reset.style.display = 'none';
+}
 
-    export function hideGameButtons() {
-        const reset = document.getElementById('btn-reset');
-        if (reset) reset.style.display = 'none';
-    }
+function attachResetHandler() {
+    const resetBtn = document.getElementById('btn-reset') as HTMLImageElement;
+    if (!resetBtn) return;
 
-    function attachResetHandler() {
-        const resetBtn = document.getElementById('btn-reset') as HTMLImageElement;
-        
-        if (resetBtn) {
-            resetBtn.onclick = () => {
-                console.log('Restart button clicked.');
-                //game.retryFromStart(); // DUPLICATE 
+    resetBtn.onclick = () => {
+        if (gamePhaser) gamePhaser.sound.stopByKey('bgm-nen');
+        AudioManager.stopAll();
+        AudioManager.play('sfx-click');
 
-                if(gamePhaser) gamePhaser.sound.stopByKey('bgm-nen');
-                AudioManager.stopAll();
-                
-                try {
-                    AudioManager.play('sfx-click'); 
-                } catch (e) {
-                    console.error("Error playing sfx-click:", e);
-                }
-
-                if (window.gameScene && window.gameScene.scene) {
-                    window.gameScene.scene.stop();
-                    window.gameScene.scene.start('Scene1', { isRestart: true }); 
-                } else {
-                    console.error('GameScene instance not found on window. Cannot restart.');
-                }
-                
-                hideGameButtons();
-            };
+        if (window.gameScene && window.gameScene.scene) {
+            window.gameScene.scene.stop();
+            window.gameScene.scene.start('Scene1', { isRestart: true });
         }
-    }
 
-    // Init logic phụ
-    initRotateOrientation(gamePhaser);
-    attachResetHandler();
+        hideGameButtons();
+    };
+}
 
-    updateUIButtonScale();
-    window.addEventListener('resize', updateUIButtonScale);
-    window.addEventListener('orientationchange', updateUIButtonScale);
-
-    document.getElementById('btn-reset')?.addEventListener('sfx-click', () => {
-        window.gameScene?.scene.restart();
-    });
+// --- KHOI TAO ---
+initRotateOrientation(gamePhaser);
+attachResetHandler();
+updateUIButtonScale();
+window.addEventListener('resize', updateUIButtonScale);
+window.addEventListener('orientationchange', updateUIButtonScale);

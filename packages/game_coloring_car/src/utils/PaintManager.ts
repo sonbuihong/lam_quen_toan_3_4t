@@ -2,57 +2,78 @@ import Phaser from 'phaser';
 import { GameConstants } from '../consts/GameConstants';
 import { game } from "@iruka-edu/mini-game-sdk";
 
+// Type alias cho PaintTracker instance
+const createPaintTracker = game.createPaintTracker;
+
+/**
+ * Quan ly toan bo logic to mau: tao layer, ve brush, kiem tra tien do,
+ * freeze/unfreeze part, va tich hop per-part PaintTracker theo game-paint.md.
+ *
+ * MOI PART = 1 TRACKER (1 ItemResult trong payload stats.items[])
+ * MOI LAN BE TO (pointerdown -> pointerup) = 1 ATTEMPT trong history[]
+ */
 export class PaintManager {
     private scene: Phaser.Scene;
-    
+
     // Config
     private brushColor: number = GameConstants.PAINT.DEFAULT_COLOR;
     private brushSize: number = GameConstants.PAINT.BRUSH_SIZE;
     private brushTexture: string = 'brush_circle';
-    
+
     // State
     private isErasing: boolean = false;
     private activeRenderTexture: Phaser.GameObjects.RenderTexture | null = null;
     private activeHitArea: Phaser.GameObjects.Image | null = null;
 
-    // ✅ FIX LAG: Biến lưu vị trí cũ để vẽ LERP
+    // Vi tri cu de ve LERP (noi suy giua cac diem)
     private lastX: number = 0;
     private lastY: number = 0;
 
-    // Config camera filter
+    // Camera filter
     private ignoreCameraId: number = 0;
 
-    // ✅ LOGIC MÀU: Map lưu danh sách màu đã dùng cho từng phần (Key: ID, Value: Set màu)
+    // Map luu mau da dung cho tung phan
     private partColors: Map<string, Set<number>> = new Map();
 
-    // ✅ OPTIMIZATION: Track unchecked painting distance per part
+    // Khoang cach chua kiem tra de toi uu hieu nang
     private partUncheckedMetrics: Map<string, number> = new Map();
-    // ✅ OPTIMIZATION: Cache mask data to avoid redundant draw calls and readback
-    private maskCache: Map<string, Uint8ClampedArray> = new Map();
-    
-    private readonly CHECK_THRESHOLD: number = 300; // Check progress every ~300px of painting
 
-    // ✅ TỐI ƯU RAM: Tạo sẵn Canvas tạm để tái sử dụng, không new mới liên tục
+    // Cache mask data de tranh readback GPU nhieu lan
+    private maskCache: Map<string, Uint8ClampedArray> = new Map();
+
+    private readonly CHECK_THRESHOLD: number = 300;
+
+    // Canvas tam de tai su dung (khong tao moi lien tuc)
     private helperCanvasPaint: HTMLCanvasElement;
     private helperCanvasMask: HTMLCanvasElement;
 
-    // Callback trả về cả Set màu thay vì 1 màu lẻ
+    // --- PER-PART PAINT TRACKER (theo game-paint.md) ---
+    // 1 part = 1 tracker, moi pointerdown->pointerup = 1 attempt
+    private paintTrackers = new Map<string, ReturnType<typeof createPaintTracker>>();
+    private nextItemSeq: number = 0;
+
+    // Dem so lan doi mau cho tung part (dung cho response)
+    private partColorChangeCount: Map<string, number> = new Map();
+    private partLastColor: Map<string, number> = new Map();
+
+    // Luu luong pixel lan to truoc do de tinh delta tung net
+    private partPreviousPaintInPx: Map<string, number> = new Map();
+    private partPreviousPaintOutPx: Map<string, number> = new Map();
+
+    // Callback khi to xong 1 phan
     private onPartComplete: (id: string, rt: Phaser.GameObjects.RenderTexture, usedColors: Set<number>) => void;
 
-    // --- SDK TRACKING ---
-    private paintTrackers = new Map<string, any>();
-    private nextItemSeq = 0;
-    private runSeq = 1; // Assuming 1 run per scene session for simplicity, or handle globally
-
-    constructor(scene: Phaser.Scene, onComplete: (id: string, rt: Phaser.GameObjects.RenderTexture, usedColors: Set<number>) => void) {
+    constructor(
+        scene: Phaser.Scene,
+        onComplete: (id: string, rt: Phaser.GameObjects.RenderTexture, usedColors: Set<number>) => void
+    ) {
         this.scene = scene;
         this.onPartComplete = onComplete;
         this.scene.input.topOnly = false;
-        
-        // Khởi tạo Canvas tạm 1 lần duy nhất
+
         this.helperCanvasPaint = document.createElement('canvas');
         this.helperCanvasMask = document.createElement('canvas');
-        
+
         this.createBrushTexture();
     }
 
@@ -61,7 +82,10 @@ export class PaintManager {
             const canvas = this.scene.textures.createCanvas(this.brushTexture, this.brushSize, this.brushSize);
             if (canvas) {
                 const ctx = canvas.context;
-                const grd = ctx.createRadialGradient(this.brushSize/2, this.brushSize/2, 0, this.brushSize/2, this.brushSize/2, this.brushSize/2);
+                const grd = ctx.createRadialGradient(
+                    this.brushSize / 2, this.brushSize / 2, 0,
+                    this.brushSize / 2, this.brushSize / 2, this.brushSize / 2
+                );
                 grd.addColorStop(0, 'rgba(255, 255, 255, 1)');
                 grd.addColorStop(1, 'rgba(255, 255, 255, 0)');
                 ctx.fillStyle = grd;
@@ -88,39 +112,104 @@ export class PaintManager {
         return this.activeRenderTexture !== null;
     }
 
-    public createPaintableLayer(x: number, y: number, key: string, scale: number, uniqueId: string): Phaser.GameObjects.Image {
+    // =================================================================
+    // PER-PART PAINT TRACKER (game-paint.md)
+    // =================================================================
+
+    /**
+     * Lay hoac tao PaintTracker cho 1 part.
+     * Theo tai lieu game-paint.md section 3:
+     * - meta: item_type, seq, run_seq, difficulty, scene_id, scene_seq, scene_type, skill_ids
+     * - expected: regions[{id, area_px, allowed_colors, correct_color}], min_region_coverage
+     */
+    private getOrCreatePaintTracker(partId: string, partKey: string) {
+        let t = this.paintTrackers.get(partId);
+        if (!t) {
+            const seq = ++this.nextItemSeq;
+            const scene1 = this.scene as any;
+
+            const hitArea = scene1.unfinishedPartsMap.get(partId);
+
+            const areaPx = hitArea?.getData("area_px") ?? 0;
+            const allowedColors = hitArea?.getData("allowed_colors") ?? ["any"];
+            const correctColor = hitArea?.getData("correct_color") ?? null;
+            const itemLabel = hitArea?.getData("item_label") ?? partKey;
+
+            const minCov =
+                hitArea?.getData("min_region_coverage") ?? GameConstants.PAINT.WIN_PERCENT;
+
+            const maxSpill =
+                hitArea?.getData("max_spill_ratio") ?? 0;
+
+            t = createPaintTracker({
+                meta: {
+                    item_type: "paint-shape", // tô hình // hoặc item_type: "paint-char",  // tô chữ
+                    seq,
+                    item_label: itemLabel,
+                    run_seq: scene1.runSeq ?? 1,
+                    difficulty: 1,
+                    scene_id: "SCN_PAINT_01",
+                    scene_seq: seq,
+                    scene_type: "paint",
+                    skill_ids: [],
+                },
+                expected: {
+                    regions: [
+                        {
+                            id: partId,
+                            area_px: areaPx,
+                            allowed_colors: allowedColors,
+                            correct_color: correctColor,
+                        },
+                    ],
+                    min_region_coverage: minCov,
+                    max_spill_ratio: maxSpill,
+                },
+            });
+
+            this.paintTrackers.set(partId, t);
+        }
+        return t;
+    }
+
+    // =================================================================
+    // PAINTABLE LAYER
+    // =================================================================
+
+    /**
+     * Tao 1 paintable layer (vung co the to mau).
+     * Gom: Mask image, RenderTexture, HitArea tuong tac.
+     */
+    public createPaintableLayer(
+        x: number, y: number, key: string, scale: number, uniqueId: string
+    ): Phaser.GameObjects.Image {
         const maskImage = this.scene.make.image({ x, y, key, add: false }).setScale(scale);
         const mask = maskImage.createBitmapMask();
 
         const rtW = maskImage.width * scale;
         const rtH = maskImage.height * scale;
-        const rt = this.scene.add.renderTexture(x - rtW/2, y - rtH/2, rtW, rtH);
-        
-        // @NOTE: clear dữ liệu của GPU để không bị issue tô dữ liệu sai vào vùng nội dung
+        const rt = this.scene.add.renderTexture(x - rtW / 2, y - rtH / 2, rtW, rtH);
+
         rt.clear().setAlpha(0);
-        
-        // ✅ TỐI ƯU: Không set mask ngay lập tức để giảm tải render
-        // rt.setMask(mask); 
         rt.setOrigin(0, 0).setDepth(10);
-        
         rt.setData('id', uniqueId);
-        rt.setData('key', key); 
+        rt.setData('key', key);
         rt.setData('isFinished', false);
-        rt.setData('mask', mask); // Lưu mask vào data để dùng sau
-        
+        rt.setData('mask', mask);
+
         if (this.ignoreCameraId) rt.cameraFilter = this.ignoreCameraId;
-        
-        // ✅ LOGIC MÀU: Tạo hitArea với opacity thấp để dễ nhìn
+
+        // HitArea voi opacity thap de nhan tuong tac nhung khong che hinh
         const hitArea = this.scene.add.image(x, y, key).setScale(scale).setAlpha(0.01).setDepth(50);
         hitArea.setInteractive({ useHandCursor: true, pixelPerfect: true });
         if (this.ignoreCameraId) hitArea.cameraFilter = this.ignoreCameraId;
 
-        // ✅ NEW: Link layer and ID to hitArea for switching logic
         hitArea.setData('layer', rt);
+        rt.setData('hitArea', hitArea);
         hitArea.setData('id', uniqueId);
+        hitArea.setData('partKey', key);
 
         hitArea.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            // 🔥 CƠ CHẾ CHUYỂN ĐỔI THÔNG MINH (SWITCHING) 🔥
             if (this.activeHitArea !== hitArea) {
                 if (this.activeHitArea) {
                     this.freezePart(this.activeHitArea);
@@ -129,27 +218,22 @@ export class PaintManager {
                 this.activeHitArea = hitArea;
             }
 
-            // Retrieve the CURRENT active layer (it might be a new RT after unfreeze)
             const activeLayer = hitArea.getData('layer');
             if (!(activeLayer instanceof Phaser.GameObjects.RenderTexture)) return;
 
-            // ✅ TỐI ƯU: Khi chạm vào mới bật mask lên
+            // Bat mask khi cham vao lan dau (toi uu render)
             if (!activeLayer.mask) {
                 const storedMask = activeLayer.getData('mask');
                 if (storedMask) activeLayer.setMask(storedMask);
             }
 
             this.activeRenderTexture = activeLayer;
-            
-            // ✅ QUAN TRỌNG: Lưu vị trí bắt đầu để tính toán LERP
             this.lastX = pointer.x - activeLayer.x;
             this.lastY = pointer.y - activeLayer.y;
 
-            // --- SDK TRACKING: ON SHOWN ---
-            const tracker = this.getOrCreatePaintTracker(uniqueId, key, hitArea);
-            if (tracker) {
-                tracker.onShown(Date.now());
-            }
+            // PaintTracker: Ghi nhan vung nay duoc hien thi (onShown)
+            const tracker = this.getOrCreatePaintTracker(uniqueId, key);
+            tracker.onShown(Date.now());
 
             this.paint(pointer, activeLayer);
         });
@@ -169,107 +253,93 @@ export class PaintManager {
             return;
         }
         if (this.activeRenderTexture) {
-            // ✅ TỐI ƯU: Chỉ check progress nếu đã vẽ đủ nhiều (Throttle)
-            // Check immediately on pointer up regardless of distance to update SDK
             const id = this.activeRenderTexture.getData('id');
-            this.checkProgress(this.activeRenderTexture, true);
-            this.partUncheckedMetrics.set(id, 0); // Reset distance
-            
+            // Luon check progress va gui tracking khi nhac tay (moi lan = 1 attempt)
+            this.checkProgressAndTrack(this.activeRenderTexture, this.activeHitArea!);
+            this.partUncheckedMetrics.set(id, 0);
             this.activeRenderTexture = null;
         }
     }
+
+    // =================================================================
+    // FREEZE / UNFREEZE - Chuyen doi giua RenderTexture va Image tinh
+    // =================================================================
 
     private freezePart(hitArea: Phaser.GameObjects.Image) {
         const currentLayer = hitArea.getData('layer');
         if (currentLayer instanceof Phaser.GameObjects.RenderTexture) {
             const uniqueId = hitArea.getData('id');
             const key = `painted_tex_${uniqueId}`;
-            
-            // Save current RT content to Texture Manager
+
             if (this.scene.textures.exists(key)) {
                 this.scene.textures.remove(key);
             }
-            currentLayer.saveTexture(key);
-            
-            // Create static Image replacement
+            (currentLayer as any).saveTexture(key);
+
             const img = this.scene.add.image(currentLayer.x, currentLayer.y, key);
             img.setOrigin(0, 0).setDepth(10);
-            
-            // Transfer Mask
+
             const storedMask = currentLayer.getData('mask');
             if (storedMask) img.setMask(storedMask);
             if (this.ignoreCameraId) img.cameraFilter = this.ignoreCameraId;
-            
-            // Transfer Data
+
             img.setData('id', uniqueId);
             img.setData('key', currentLayer.getData('key'));
             img.setData('isFinished', currentLayer.getData('isFinished'));
             img.setData('mask', storedMask);
-            
-            // Update link
+
             hitArea.setData('layer', img);
-            
-            // Destroy heavy RT
             currentLayer.destroy();
         }
     }
 
     private unfreezePart(hitArea: Phaser.GameObjects.Image) {
         const currentLayer = hitArea.getData('layer');
-        
-        // If it's a static Image, convert back to RT
+
         if (currentLayer instanceof Phaser.GameObjects.Image) {
             const width = currentLayer.width;
             const height = currentLayer.height;
             const x = currentLayer.x;
             const y = currentLayer.y;
-            
+
             const rt = this.scene.add.renderTexture(x, y, width, height);
             rt.setOrigin(0, 0).setDepth(10);
-            
-            // Clear mask
-            currentLayer.clearMask();
 
-            // Draw the frozen texture onto the new RT
+            currentLayer.clearMask();
             rt.draw(currentLayer, 0, 0);
-            
-            // Restore context
+
             const storedMask = currentLayer.getData('mask');
             if (storedMask) rt.setMask(storedMask);
             if (this.ignoreCameraId) rt.cameraFilter = this.ignoreCameraId;
-            
-            // Restore Data
+
             rt.setData('id', currentLayer.getData('id'));
             rt.setData('key', currentLayer.getData('key'));
             rt.setData('isFinished', currentLayer.getData('isFinished'));
             rt.setData('mask', storedMask);
-            
-            // Update link
+
             hitArea.setData('layer', rt);
-            
-            // Cleanup static Image
+            rt.setData('hitArea', hitArea);
+
             currentLayer.destroy();
         }
     }
 
-    // ✅ HÀM PAINT MỚI: DÙNG LERP ĐỂ VẼ MƯỢT
+    // =================================================================
+    // PAINT - Thuat toan LERP de ve muot
+    // =================================================================
+
     private paint(pointer: Phaser.Input.Pointer, rt: Phaser.GameObjects.RenderTexture) {
-        // 1. Lấy toạ độ hiện tại (Local)
         const currentX = pointer.x - rt.x;
         const currentY = pointer.y - rt.y;
-
-        // 2. Tính khoảng cách
         const distance = Phaser.Math.Distance.Between(this.lastX, this.lastY, currentX, currentY);
 
-        // Tối ưu: Nếu di chuyển quá ít (< 5px) thì bỏ qua
+        // Bo qua neu di chuyen qua it
         if (distance < 10) return;
 
-        // ✅ Accumulate distance for throttling checks
         const id = rt.getData('id');
         const currentDist = this.partUncheckedMetrics.get(id) || 0;
         this.partUncheckedMetrics.set(id, currentDist + distance);
 
-        // 3. Thuật toán LERP (Nội suy)
         const stepSize = this.brushSize * 0.65;
         let steps = Math.ceil(distance / stepSize);
         if (steps > 50) steps = 50;
@@ -287,198 +357,188 @@ export class PaintManager {
             }
         }
 
-        // Vẽ chốt hạ tại điểm cuối
         if (this.isErasing) {
             rt.erase(this.brushTexture, currentX - offset, currentY - offset);
         } else {
             rt.draw(this.brushTexture, currentX - offset, currentY - offset, 1.0, this.brushColor);
-            
-            // ✅ MOVED OUTSIDE OF LOOP: color tracking only triggers ONCE per paint action
-            // Optimization: checking set has/add is fast, but doing it inside loop is wasteful.
-            // Since activeRenderTexture is set, we do it here (once per pointermove event).
+
+            // Theo doi mau da dung (ke ca khi da to xong de tiep tuc gui tracking neu be to lai)
             if (!this.partColors.has(id)) {
                 this.partColors.set(id, new Set());
             }
             this.partColors.get(id)?.add(this.brushColor);
+
+            // Dem so lan doi mau (dung cho tracking response)
+            const lastColor = this.partLastColor.get(id);
+            if (lastColor !== undefined && lastColor !== this.brushColor) {
+                this.partColorChangeCount.set(id, (this.partColorChangeCount.get(id) || 0) + 1);
+            }
+            this.partLastColor.set(id, this.brushColor);
         }
 
-        // 4. Cập nhật vị trí cũ
         this.lastX = currentX;
         this.lastY = currentY;
     }
 
-    // ✅ HÀM CHECK PROGRESS MỚI: TỐI ƯU BỘ NHỚ
-    private checkProgress(rt: Phaser.GameObjects.RenderTexture, isPointerUp: boolean = false) {
-        if (rt.getData('isFinished')) return;
-        
+    // =================================================================
+    // CHECK PROGRESS + TRACKER - Moi lan nhac tay = 1 attempt (onDone)
+    // =================================================================
+
+    /**
+     * Kiem tra tien do to mau va gui tracking data len SDK.
+     * Theo game-paint.md section 5.2: moi pointerup -> tao response va goi onDone.
+     */
+    private checkProgressAndTrack(
+        rt: Phaser.GameObjects.RenderTexture,
+        hitArea: Phaser.GameObjects.Image
+    ) {
         const id = rt.getData('id');
         const key = rt.getData('key');
 
         rt.snapshot((snapshot) => {
             if (!(snapshot instanceof HTMLImageElement)) return;
-            
+
             const w = snapshot.width;
             const h = snapshot.height;
             const checkW = Math.floor(w / 4);
             const checkH = Math.floor(h / 4);
 
-            // ✅ TÁI SỬ DỤNG CANVAS (Không tạo mới)
             const ctxPaint = this.getRecycledContext(this.helperCanvasPaint, snapshot, checkW, checkH);
-
             if (!ctxPaint) return;
             const paintData = ctxPaint.getImageData(0, 0, checkW, checkH).data;
-            
-            // ✅ TỐI ƯU HIỆU NĂNG: Lấy Mask Data từ Cache (nếu có) hoặc tính mới 1 lần
+
             let maskData = this.maskCache.get(id);
-
             if (!maskData) {
-                 const sourceImg = this.scene.textures.get(key).getSourceImage() as HTMLImageElement;
-                 const ctxMask = this.getRecycledContext(this.helperCanvasMask, sourceImg, checkW, checkH);
-                 
-                 if (!ctxMask) return;
-                 
-                 // Lưu vào cache dạng TypedArray
-                 maskData = ctxMask.getImageData(0, 0, checkW, checkH).data;
-                 this.maskCache.set(id, maskData);
+                const sourceImg = this.scene.textures.get(key).getSourceImage() as HTMLImageElement;
+                const ctxMask = this.getRecycledContext(this.helperCanvasMask, sourceImg, checkW, checkH);
+                if (!ctxMask) return;
+                maskData = ctxMask.getImageData(0, 0, checkW, checkH).data;
+                this.maskCache.set(id, maskData);
             }
 
-            let match = 0;
-            let total = 0;
+            let paintInPx = 0;
+            let paintOutPx = 0;
+            let totalMaskPx = 0;
 
-            // Thuật toán đếm Pixel (Giữ nguyên logic của bạn)
             for (let i = 3; i < paintData.length; i += 4) {
-                if (maskData[i] > 0) { // Nếu pixel thuộc vùng mask
-                    total++;
-                    if (paintData[i] > 0) match++; // Nếu đã được tô
+                if (maskData[i] > 0) {
+                    totalMaskPx++;
+                    if (paintData[i] > 0) paintInPx++;
+                } else {
+                    if (paintData[i] > 0) paintOutPx++;
                 }
             }
 
-            const percentage = total > 0 ? match / total : 0;
+            const previousPaintInPx = this.partPreviousPaintInPx.get(id) || 0;
+            const previousPaintOutPx = this.partPreviousPaintOutPx.get(id) || 0;
             
-            // --- SDK TRACKING: ON DONE (Attempt) ---
-            if (isPointerUp) {
-                const usedColors = this.partColors.get(id) || new Set([this.brushColor]);
-                const tracker = this.paintTrackers.get(id);
-                if (tracker) {
-                    const minCov = GameConstants.PAINT.WIN_PERCENT; // Or fetch from hitArea data if available
-                    const response = {
-                        selected_color: usedColors.size === 1 ? this.toHex([...usedColors][0]) : "multi",
-                        brush_size: this.brushSize,
-                        color_change_count: Math.max(0, usedColors.size - 1),
-                        brush_change_count: 0,
-                    
-                        regions_result: [
-                            {
-                                region_id: id,
-                                area_px: this.paintTrackers.get(id)?.expected?.regions[0]?.area_px || (total * 16), // ✅ Use config value or scaled back approximation
-                                paint_in_px: match * 16, // ✅ Scale to match original resolution
-                                paint_out_px: 0,
-                                coverage: percentage,
-                                spill_ratio: 0,
-                            },
-                        ],
-                    
-                        total_paint_in_px: match,
-                        total_paint_out_px: 0,
-                        completion_pct: percentage,
-                        spill_ratio: 0,
-                    };
+            // Cap nhat cho lan to ke tiep
+            this.partPreviousPaintInPx.set(id, paintInPx);
+            this.partPreviousPaintOutPx.set(id, paintOutPx);
 
-                    tracker.onDone(response, Date.now(), {
-                        isCorrect: percentage >= minCov,
-                        errorCode: percentage >= minCov ? null : "LOW_COVERAGE",
-                    });
+            let deltaPaintInPx = paintInPx - previousPaintInPx;
+            let deltaPaintOutPx = paintOutPx - previousPaintOutPx;
 
-                    // Finalize if finished
-                    if (percentage > GameConstants.PAINT.WIN_PERCENT) {
-                         tracker.finalize();
-                         this.paintTrackers.delete(id);
-                    }
-                }
-            }
+            if (deltaPaintInPx < 0) deltaPaintInPx = 0;
+            if (deltaPaintOutPx < 0) deltaPaintOutPx = 0;
 
-            if (percentage > GameConstants.PAINT.WIN_PERCENT) {
+            const deltaCoverage = totalMaskPx > 0 ? deltaPaintInPx / totalMaskPx : 0;
+            const absoluteCoverage = totalMaskPx > 0 ? paintInPx / totalMaskPx : 0;
+
+            const minCov = GameConstants.PAINT.WIN_PERCENT;
+            const expectedAreaPx = Math.max(hitArea.getData("area_px") || 1, 1);
+
+            // --- Build response theo game-paint.md section 5.2 ---
+            const colorChangeCount = this.partColorChangeCount.get(id) || 0;
+            const hexColorStr = `#${this.brushColor.toString(16).padStart(6, '0')}`;
+            
+            const strokePaintInPx = Math.floor(deltaCoverage * expectedAreaPx);
+            const strokePaintOutPx = Math.floor(deltaPaintOutPx * 16);
+
+            const response = {
+                selected_color: [hexColorStr],
+                brush_size: this.brushSize,
+                color_change_count: colorChangeCount,
+                brush_change_count: 0,
+                regions_result: [
+                    {
+                        region_id: id,
+                        area_px: expectedAreaPx,
+                        paint_in_px: strokePaintInPx,
+                        paint_out_px: strokePaintOutPx,
+                        coverage: deltaCoverage,
+                    },
+                ],
+                total_paint_in_px: strokePaintInPx,
+                total_paint_out_px: strokePaintOutPx,
+                completion_pct: deltaCoverage,
+            };
+
+            // --- Gui tracking: onDone = 1 attempt ---
+            const isCorrect = true;//absoluteCoverage >= minCov;
+            const tracker = this.getOrCreatePaintTracker(id, key);
+            tracker.onDone(response, Date.now(), {
+                isCorrect: isCorrect,
+                // errorCode: isCorrect ? null : GameConstants.ERROR_CODES.LOW_COVERAGE,
+            });
+
+            // --- Kiem tra hoan thanh vung nay ---
+            if (absoluteCoverage >= minCov && !rt.getData('isFinished')) {
                 rt.setData('isFinished', true);
 
-                // ✅ GỬI DANH SÁCH MÀU VỀ SCENE
                 const usedColors = this.partColors.get(id) || new Set([this.brushColor]);
                 this.onPartComplete(id, rt, usedColors);
-                
-                // Clear bộ nhớ màu của phần này cho nhẹ
-                this.partColors.delete(id);
-                this.partUncheckedMetrics.delete(id); // Cleanup metrics
-                // Không cần xóa maskCache ngay nếu muốn memory stable, hoặc xóa nếu cần tiết kiệm RAM. 
-                // Với game nhỏ, giữ lại cho đến khi chuyển scene cũng được.
             }
         });
     }
 
-    // Hàm helper để tái sử dụng Context
     private getRecycledContext(canvas: HTMLCanvasElement, img: HTMLImageElement, w: number, h: number) {
-        canvas.width = w; // Set lại width tự động clear nội dung cũ
+        canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext('2d');
         if (ctx) {
-            ctx.clearRect(0, 0, w, h); // Clear chắc chắn lần nữa
+            ctx.clearRect(0, 0, w, h);
             ctx.drawImage(img, 0, 0, w, h);
         }
         return ctx;
     }
 
-    // --- SDK HELPERS ---
-    private getOrCreatePaintTracker(partId: string, partKey: string, hitArea: Phaser.GameObjects.Image) {
-        let t = this.paintTrackers.get(partId);
-        if (!t) {
-            const seq = ++this.nextItemSeq;
-            
-            const areaPx = hitArea.getData("area_px") ?? 0;
-            const allowedColors = hitArea.getData("allowed_colors") ?? ["any"];
-            const correctColor = hitArea.getData("correct_color") ?? null;
-            const minCov = hitArea.getData("min_region_coverage") ?? GameConstants.PAINT.WIN_PERCENT;
-            const maxSpill = hitArea.getData("max_spill_ratio") ?? 0;
-            
-            // Try to guess scene_id from partId or scene manager if possible, hardcode for now or pass in
-            const sceneId = "SCN_COLORING_CAR"; 
+    // =================================================================
+    // CLEANUP - Dong tracker khi ket thuc game hoac restart
+    // =================================================================
 
-            t = (game as any).createPaintTracker({
-                meta: {
-                    item_id: `PAINT_${partId}`,
-                    item_type: "paint",
-                    seq,
-                    run_seq: this.runSeq,
-                    difficulty: 1,
-                    scene_id: sceneId,
-                    scene_seq: seq,
-                    scene_type: "paint",
-                    skill_ids: [],
-                },
-                expected: {
-                    regions: [
-                        {
-                            id: partId,
-                            area_px: areaPx,
-                            allowed_colors: allowedColors,
-                            correct_color: correctColor,
-                        },
-                    ],
-                    min_region_coverage: minCov,
-                    max_spill_ratio: maxSpill,
-                },
-            });
-            
-            this.paintTrackers.set(partId, t);
-        }
-        return t;
+    /**
+     * Ghi nhan hint vao tracker cua 1 part cu the.
+     * SDK se tang hint_used cua item do, tu do prepareSubmitData() tong hop dung hintCount.
+     */
+    public addHintToTracker(partId: string, partKey: string) {
+        const tracker = this.getOrCreatePaintTracker(partId, partKey);
+        tracker.hint(1);
     }
 
-    private toHex(colorNum: number): string {
-        return '#' + colorNum.toString(16).padStart(6, '0');
-    }
-
-    public finalizeAll() {
-        for (const [_, t] of this.paintTrackers.entries()) {
-            t.finalize();
-        }
+    /**
+     * Finalize tat ca tracker con do truoc khi ket thuc game.
+     * Theo game-paint.md section 6: truoc prepareSubmitData phai finalize het.
+     */
+    public closeAllTrackers() {
+        this.paintTrackers.forEach((tracker) => {
+            if (tracker) {
+                tracker.finalize();
+            }
+        });
         this.paintTrackers.clear();
+    }
+
+    /** Xoa du lieu khi restart game */
+    public clearTrackersData() {
+        this.paintTrackers.clear();
+        this.partColors.clear();
+        this.partUncheckedMetrics.clear();
+        this.partColorChangeCount.clear();
+        this.partLastColor.clear();
+        this.partPreviousPaintInPx.clear();
+        this.partPreviousPaintOutPx.clear();
+        this.maskCache.clear();
+        this.nextItemSeq = 0;
     }
 }
